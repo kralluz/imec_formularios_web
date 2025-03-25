@@ -1,139 +1,139 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { FaPlus, FaTrash, FaSave, FaTimes } from "react-icons/fa"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { useQuestion } from "@/contexts/question-context"
-import { useCustomToast } from "@/hooks/use-custom-toast"
-import type { Question, QuestionType, QuestionOption } from "@/types/question"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { FaPlus, FaTrash, FaSave, FaTimes } from "react-icons/fa";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useQuestion } from "@/contexts/question-context";
+import type { Question, QuestionType, QuestionOption } from "@/types/question";
+import { message } from "antd";
 
 interface QuestionFormProps {
-  questionnaireId: string
-  parentQuestionId?: string | null
-  onCancel: () => void
-  onSuccess: () => void
-  questionToEdit?: Question | null
+  questionnaireId: string;
+  parentQuestionId?: string | null;
+  defaultIndex: number;
+  initialValues: Partial<Question>;
+  onCancel: () => void;
+  onSuccess: () => void;
+  getNextIndex: (parentId?: string) => number;
 }
 
 export default function QuestionForm({
   questionnaireId,
   parentQuestionId = null,
+  defaultIndex,
+  initialValues,
   onCancel,
   onSuccess,
-  questionToEdit = null,
+  getNextIndex,
 }: QuestionFormProps) {
-  const { createQuestion, updateQuestion } = useQuestion()
-  const toast = useCustomToast()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { createQuestion, updateQuestion } = useQuestion();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Estados do formulário
-  const [text, setText] = useState("")
-  const [type, setType] = useState<QuestionType>("text")
-  const [orderIndex, setOrderIndex] = useState(0)
-  const [triggerValue, setTriggerValue] = useState<string | null>(null)
-  const [options, setOptions] = useState<Omit<QuestionOption, "id" | "questionId" | "createdAt">[]>([])
+  const [text, setText] = useState("");
+  const [type, setType] = useState<QuestionType>("text");
+  const [orderIndex, setOrderIndex] = useState(defaultIndex);
+  const [triggerValue, setTriggerValue] = useState<string | null>(null);
+  const [options, setOptions] = useState<Omit<QuestionOption, "id" | "questionId" | "createdAt">[]>([]);
 
   // Carregar dados da questão se estiver editando
   useEffect(() => {
-    if (questionToEdit) {
-      setText(questionToEdit.text || "")
-      setType(questionToEdit.type || "text")
-      setOrderIndex(questionToEdit.orderIndex || 0)
-      setTriggerValue(questionToEdit.triggerValue || null)
-
-      if (questionToEdit.options && questionToEdit.options.length > 0) {
+    if (initialValues && initialValues.id) {
+      setText(initialValues.text || "");
+      setType(initialValues.type || "text");
+      setOrderIndex(initialValues.orderIndex || defaultIndex);
+      setTriggerValue(initialValues.triggerValue ?? null);
+      if (initialValues.options && initialValues.options.length > 0) {
         setOptions(
-          questionToEdit.options.map((opt) => ({
+          initialValues.options.map((opt) => ({
             label: opt.label,
             value: opt.value,
-          })),
-        )
+          }))
+        );
       } else {
-        setOptions([])
+        setOptions([]);
       }
     } else {
-      // Se for uma nova questão, inicializar com valores padrão
-      setText("")
-      setType("text")
-      setOrderIndex(0)
-      setTriggerValue(null)
-      setOptions([])
+      setText("");
+      setType("text");
+      setOrderIndex(defaultIndex);
+      setTriggerValue(null);
+      setOptions([]);
     }
-  }, [questionToEdit])
+  }, [initialValues, defaultIndex]);
 
   // Adicionar uma nova opção
   const addOption = () => {
-    setOptions([...options, { label: "", value: "" }])
-  }
+    setOptions([...options, { label: "", value: "" }]);
+  };
 
   // Remover uma opção
   const removeOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index))
-  }
+    setOptions(options.filter((_, i) => i !== index));
+  };
 
   // Atualizar uma opção
   const updateOption = (index: number, field: "label" | "value", value: string) => {
-    const updatedOptions = [...options]
+    const updatedOptions = [...options];
     updatedOptions[index] = {
       ...updatedOptions[index],
       [field]: value,
-    }
-    setOptions(updatedOptions)
-  }
+    };
+    setOptions(updatedOptions);
+  };
 
   // Verificar se o tipo de questão requer opções
   const requiresOptions = (type: QuestionType): boolean => {
-    return ["radio", "checkbox", "select"].includes(type)
-  }
+    return ["radio", "checkbox", "select"].includes(type);
+  };
 
   // Enviar o formulário
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+    e.preventDefault();
+    setIsSubmitting(true);
 
     try {
-      // Validar campos
       if (!text.trim()) {
-        toast.error("Erro", "O texto da questão é obrigatório")
-        setIsSubmitting(false)
-        return
+        message.error("O texto da questão é obrigatório");
+        setIsSubmitting(false);
+        return;
       }
-
-      // Validar opções para tipos que as requerem
       if (requiresOptions(type) && options.length === 0) {
-        toast.error("Erro", `Questões do tipo ${type} precisam ter pelo menos uma opção`)
-        setIsSubmitting(false)
-        return
+        message.error(`Questões do tipo ${type} precisam ter pelo menos uma opção`);
+        setIsSubmitting(false);
+        return;
       }
-
-      // Validar que todas as opções têm label e value
       if (requiresOptions(type)) {
         for (const option of options) {
           if (!option.label.trim() || !option.value.trim()) {
-            toast.error("Erro", "Todas as opções precisam ter rótulo e valor")
-            setIsSubmitting(false)
-            return
+            message.error("Todas as opções precisam ter rótulo e valor");
+            setIsSubmitting(false);
+            return;
           }
         }
       }
 
-      if (questionToEdit && questionToEdit.id) {
-        // Atualizar questão existente
-        await updateQuestion(questionToEdit.id, {
+      if (initialValues && initialValues.id) {
+        await updateQuestion(initialValues.id, {
           text,
           type,
           orderIndex,
           triggerValue,
           options: requiresOptions(type) ? options : [],
-        })
+        });
       } else {
-        // Criar nova questão
         await createQuestion({
           questionnaireId,
           parentQuestionId,
@@ -142,32 +142,26 @@ export default function QuestionForm({
           orderIndex,
           triggerValue,
           options: requiresOptions(type) ? options : [],
-        })
+        });
       }
-
-      // Notificar sucesso
-      toast.success(
-        questionToEdit ? "Questão atualizada" : "Questão criada",
-        questionToEdit ? "A questão foi atualizada com sucesso" : "A questão foi criada com sucesso",
-      )
-
-      // Chamar callback de sucesso
-      onSuccess()
+      message.success(
+        initialValues && initialValues.id
+          ? "A questão foi atualizada com sucesso"
+          : "A questão foi criada com sucesso"
+      );
+      onSuccess();
     } catch (error) {
-      console.error("Erro ao salvar questão:", error)
-      toast.error("Erro", "Ocorreu um erro ao salvar a questão")
+      console.error("Erro ao salvar questão:", error);
+      message.error("Ocorreu um erro ao salvar a questão");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
+    // Removemos o título duplicado (CardHeader sem CardTitle) pois o Modal já exibe o título.
     <Card className="border-gray-200 bg-white shadow-md dark:border-gray-800 dark:bg-gray-800">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl text-gray-800 dark:text-white">
-          {questionToEdit ? "Editar Questão" : "Nova Questão"}
-        </CardTitle>
-      </CardHeader>
+      <CardHeader className="pb-2"></CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -196,7 +190,7 @@ export default function QuestionForm({
                 >
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent style={{ zIndex: 9999 }}>
                   <SelectItem value="text">Texto</SelectItem>
                   <SelectItem value="textarea">Área de Texto</SelectItem>
                   <SelectItem value="number">Número</SelectItem>
@@ -255,7 +249,6 @@ export default function QuestionForm({
                   <FaPlus className="mr-1 h-3 w-3" /> Adicionar Opção
                 </Button>
               </div>
-
               {options.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 italic">
                   Nenhuma opção adicionada. Clique em "Adicionar Opção" para incluir opções.
@@ -316,6 +309,5 @@ export default function QuestionForm({
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }
-

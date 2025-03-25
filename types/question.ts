@@ -1,6 +1,6 @@
 import type { Questionnaire } from "./questionnaire"
 
-export type QuestionType = "text" | "radio" | "checkbox" | "select" | "textarea" | "number" | "date"
+export type QuestionType = "text" | "textarea" | "radio" | "checkbox" | "date" | "number"
 
 export interface QuestionOption {
   id?: string
@@ -11,7 +11,7 @@ export interface QuestionOption {
 }
 
 export interface Question {
-  id?: string
+  id: string
   questionnaireId: string
   parentQuestionId?: string | null
   triggerValue?: string | null
@@ -30,7 +30,7 @@ export interface CreateQuestionDTO {
   orderIndex: number
   text: string
   type: QuestionType
-  options: Omit<QuestionOption, "id" | "questionId" | "createdAt">[]
+  options?: Omit<QuestionOption, "id" | "questionId" | "createdAt">[]
 }
 
 export interface UpdateQuestionDTO {
@@ -48,4 +48,3 @@ export interface GetQuestionsByQuestionnaireDTO {
 export interface QuestionnaireWithQuestions extends Questionnaire {
   questions: Question[]
 }
-

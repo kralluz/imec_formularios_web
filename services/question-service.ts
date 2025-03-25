@@ -4,6 +4,7 @@ import type {
   CreateQuestionDTO,
   UpdateQuestionDTO,
   GetQuestionsByQuestionnaireDTO,
+  QuestionOption,
 } from "@/types/question";
 
 // Função auxiliar para validar UUID
@@ -11,6 +12,10 @@ const isValidUUID = (id: string): boolean => {
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
+};
+
+type HierarchicalQuestion = Question & {
+  childQuestions: HierarchicalQuestion[];
 };
 
 const QuestionService = {
@@ -106,12 +111,15 @@ const QuestionService = {
    * Atualiza uma opção de questão.
    * Endpoint: PUT /questions/options/{id}
    */
-  async updateQuestionOption(id: string, data: any): Promise<any> {
+  async updateQuestionOption(
+    id: string,
+    data: { label?: string; value?: string }
+  ): Promise<QuestionOption> {
     if (!isValidUUID(id)) {
       throw new Error("ID da opção de questão inválido");
     }
     try {
-      const response = await api.put<any>(`/questions/options/${id}`, data);
+      const response = await api.put<QuestionOption>(`/questions/options/${id}`, data);
       return response.data;
     } catch (error) {
       console.error(`Erro ao atualizar opção da questão ${id}:`, error);
@@ -138,30 +146,25 @@ const QuestionService = {
   /**
    * Organiza uma lista de questões em hierarquia (questões pai e filhas).
    */
-  organizeQuestionsHierarchy(questions: Question[]): Question[] {
+  organizeQuestionsHierarchy(questions: Question[]): HierarchicalQuestion[] {
     // Cria um mapa de todas as questões por ID, garantindo que cada questão tenha a propriedade childQuestions definida.
-    const questionsMap = new Map<
-      string,
-      Question & { childQuestions: Question[] }
-    >();
+    const questionsMap = new Map<string, HierarchicalQuestion>();
     questions.forEach((question) => {
       if (question.id) {
-        // Se childQuestions não estiver definido, utiliza um array vazio.
         questionsMap.set(question.id, {
           ...question,
-          childQuestions: question.childQuestions ?? [],
+          childQuestions: [],
         });
       }
     });
 
     // Organiza as questões em uma estrutura hierárquica.
-    const rootQuestions: (Question & { childQuestions: Question[] })[] = [];
+    const rootQuestions: HierarchicalQuestion[] = [];
     questionsMap.forEach((question) => {
       if (!question.parentQuestionId) {
         // Questão raiz.
         rootQuestions.push(question);
       } else {
-        // Questão filha.
         const parent = questionsMap.get(question.parentQuestionId);
         if (parent) {
           parent.childQuestions.push(question);
@@ -173,7 +176,9 @@ const QuestionService = {
     });
 
     // Função recursiva para ordenar as questões por orderIndex.
-    const sortQuestions = (questions: Question[]): Question[] => {
+    const sortQuestions = (
+      questions: HierarchicalQuestion[]
+    ): HierarchicalQuestion[] => {
       return questions
         .sort((a, b) => a.orderIndex - b.orderIndex)
         .map((q) => ({

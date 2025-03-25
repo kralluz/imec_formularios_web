@@ -8,6 +8,7 @@ import {
   FaUserPlus,
   FaEllipsisV,
   FaMinusCircle,
+  FaCaretDown,
 } from "react-icons/fa";
 import { Card } from "@/components/ui/card";
 import {
@@ -20,10 +21,9 @@ import {
 } from "@/components/ui/table";
 import UserService from "@/services/user-service";
 import SectorService from "@/services/sector-service";
-import type { User, UserUpdateData } from "@/services/auth-service";
+import type { User } from "@/services/auth-service";
 import type { Sector } from "@/types/sector";
-import { notification, Modal, Button, Dropdown, Menu, Form, Input } from "antd";
-import { DownOutlined } from "@ant-design/icons";
+import { notification, Modal, Button, Dropdown, Form, Input } from "antd";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -107,12 +107,12 @@ export default function UsersPage() {
       okText: "Sim",
       cancelText: "Não",
       okButtonProps: {
-        style: { backgroundColor: "#805ad5", borderColor: "#805ad5" }
+        style: { backgroundColor: "#805ad5", borderColor: "#805ad5" },
       },
       cancelButtonProps: {
-          style: { borderColor: "#805ad5", color: "#805ad5" },
-          className: "custom-cancel-btn",
-        },
+        style: { borderColor: "#805ad5", color: "#805ad5" },
+        className: "custom-cancel-btn",
+      },
       onOk: async () => {
         try {
           await SectorService.associateUserToSector(userId, sectorId);
@@ -128,60 +128,79 @@ export default function UsersPage() {
             description: "Não foi possível associar o setor.",
           });
         }
-      }
+      },
     });
   };
 
-    const handleDisassociateSector = (userId: string) => {
-        Modal.confirm({
-            title: "Confirmação de Remoção",
-            content: `Tem certeza que deseja remover o usuário deste setor?`,
-            okText: "Sim",
-            cancelText: "Não",
-             okButtonProps: {
-                style: { backgroundColor: "#805ad5", borderColor: "#805ad5" }
-             },
-            cancelButtonProps: {
-                style: { borderColor: "#805ad5", color: "#805ad5" },
-                className: "custom-cancel-btn",
-            },
-            onOk: async () => {
-                try {
-                    await SectorService.disassociateUserFromSector(userId);
-                    notification.success({
-                        message: "Setor desassociado",
-                        description: "Usuário desassociado do setor com sucesso.",
-                    });
-                    loadUsers();
-                } catch (error) {
-                    console.error("Erro ao desassociar setor:", error);
-                    notification.error({
-                        message: "Erro",
-                        description: "Não foi possível desassociar o setor.",
-                    });
-                }
-            }
-        });
-    };
+  const handleDisassociateSector = (userId: string) => {
+    Modal.confirm({
+      title: "Confirmação de Remoção",
+      content: `Tem certeza que deseja remover o usuário deste setor?`,
+      okText: "Sim",
+      cancelText: "Não",
+      okButtonProps: {
+        style: { backgroundColor: "#805ad5", borderColor: "#805ad5" },
+      },
+      cancelButtonProps: {
+        style: { borderColor: "#805ad5", color: "#805ad5" },
+        className: "custom-cancel-btn",
+      },
+      onOk: async () => {
+        try {
+          await SectorService.disassociateUserFromSector(userId);
+          notification.success({
+            message: "Setor desassociado",
+            description: "Usuário desassociado do setor com sucesso.",
+          });
+          loadUsers();
+        } catch (error) {
+          console.error("Erro ao desassociar setor:", error);
+          notification.error({
+            message: "Erro",
+            description: "Não foi possível desassociar o setor.",
+          });
+        }
+      },
+    });
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("pt-BR");
   };
 
-  const buildSectorMenu = (user: User) => (
-    <Menu>
-      {sectors.map((sector) => (
-        <Menu.Item
-          style={{ fontSize: "1.1rem" }}
-          key={sector.id}
-          onClick={() => handleAssociateSector(user.id, sector.id)}
-        >
-          {sector.name}
-        </Menu.Item>
-      ))}
-    </Menu>
-  );
+  // Converte a lista de setores para um array de itens para o Dropdown
+  const buildSectorMenuItems = (user: User) =>
+    sectors.map((sector: any) => ({
+      key: sector.id,
+      label: <span style={{ fontSize: "1.1rem" }}>{sector.name}</span>,
+      onClick: () => handleAssociateSector(user.id, sector.id),
+    })) as any[];
+
+  // Converte a lista de ações para um array de itens para o Dropdown
+  const buildActionsMenuItems = (user: User) => [
+    {
+      key: "edit",
+      label: (
+        <div className="flex items-center">
+          <FaEdit className="mr-2 text-purple-600 dark:text-purple-400" />
+          <span style={{ fontSize: "1.1rem" }}>Editar</span>
+        </div>
+      ),
+      onClick: () => showEditModal(user),
+    },
+    {
+      key: "delete",
+      label: (
+        <div className="flex items-center">
+          <FaTrash className="mr-2 text-red-600 dark:text-red-400" />
+          <span style={{ fontSize: "1.1rem" }}>Excluir</span>
+        </div>
+      ),
+      onClick: () => handleDeleteUser(user.id, user.name),
+      danger: true,
+    },
+  ];
 
   const showEditModal = (user: User) => {
     setEditingUser(user);
@@ -194,7 +213,7 @@ export default function UsersPage() {
 
   const handleEditOk = async () => {
     try {
-      const values: UserUpdateData = await editForm.validateFields();
+      const values: any = await editForm.validateFields();
       if (editingUser) {
         await UserService.updateUser(editingUser.id, values);
         notification.success({
@@ -216,27 +235,6 @@ export default function UsersPage() {
   const handleEditCancel = () => {
     setIsEditModalVisible(false);
   };
-
-  const actionsMenu = (user: User) => (
-    <Menu>
-      <Menu.Item key="edit" onClick={() => showEditModal(user)}>
-        <div className="flex items-center">
-          <FaEdit className="mr-2 text-purple-600 dark:text-purple-400" />
-          <span style={{ fontSize: "1.1rem" }}>Editar</span>
-        </div>
-      </Menu.Item>
-      <Menu.Item
-        key="delete"
-        onClick={() => handleDeleteUser(user.id, user.name)}
-        style={{ color: "red" }}
-      >
-        <div className="flex items-center">
-          <FaTrash className="mr-2 text-red-600 dark:text-red-400" />
-          <span style={{ fontSize: "1.1rem" }}>Excluir</span>
-        </div>
-      </Menu.Item>
-    </Menu>
-  );
 
   return (
     <div className="animate-slide-up opacity-0">
@@ -304,10 +302,8 @@ export default function UsersPage() {
                           <span
                             className={`rounded-full px-2 py-1 text-xs ${
                               user.role === "ADMIN"
-                                ?
-                                  "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
-                                :
-                                  "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                                ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
+                                : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
                             }`}
                           >
                             {user.role}
@@ -330,17 +326,17 @@ export default function UsersPage() {
                             </Button>
                           ) : (
                             <Dropdown
-                              overlay={buildSectorMenu(user)}
+                              menu={{ items: buildSectorMenuItems(user) }}
                               trigger={["click"]}
                             >
                               <Button type="text" className="mr-2">
-                                Setor <DownOutlined />
+                                Setor <FaCaretDown />
                               </Button>
                             </Dropdown>
                           )}
 
                           <Dropdown
-                            overlay={actionsMenu(user)}
+                            menu={{ items: buildActionsMenuItems(user) }}
                             trigger={["click"]}
                           >
                             <Button type="text">
@@ -374,7 +370,9 @@ export default function UsersPage() {
         onCancel={handleEditCancel}
         okText="Salvar"
         cancelText="Cancelar"
-        okButtonProps={{ style: { backgroundColor: "#805ad5", borderColor: "#805ad5" } }}
+        okButtonProps={{
+          style: { backgroundColor: "#805ad5", borderColor: "#805ad5" },
+        }}
       >
         <Form form={editForm} layout="vertical">
           <Form.Item
@@ -398,7 +396,7 @@ export default function UsersPage() {
             name="password"
             label="Senha"
             rules={[
-              { min: 6, message: 'A senha deve ter pelo menos 6 caracteres!' },
+              { min: 6, message: "A senha deve ter pelo menos 6 caracteres!" },
             ]}
           >
             <Input.Password />
