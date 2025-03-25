@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { FaEdit, FaTrash, FaPlus, FaChevronDown, FaChevronRight } from "react-icons/fa";
+import {
+  FaEdit,
+  FaTrash,
+  FaPlus,
+  FaChevronDown,
+  FaChevronRight,
+} from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuestion } from "@/contexts/question-context";
-import { useCustomToast } from "@/hooks/use-custom-toast";
 import QuestionForm from "./question-form";
 import type { Question } from "@/types/question";
-import { Modal } from "antd";
+import { Modal, notification } from "antd";
 
 interface QuestionItemProps {
   question: Question;
@@ -18,9 +23,13 @@ interface QuestionItemProps {
   level?: number;
 }
 
-export default function QuestionItem({ question, questionnaireId, onUpdate, level = 0 }: QuestionItemProps) {
+export default function QuestionItem({
+  question,
+  questionnaireId,
+  onUpdate,
+  level = 0,
+}: QuestionItemProps) {
   const { deleteQuestion } = useQuestion();
-  const toast = useCustomToast();
 
   const [expanded, setExpanded] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -41,18 +50,38 @@ export default function QuestionItem({ question, questionnaireId, onUpdate, leve
 
   const handleDelete = async () => {
     if (!question.id) return;
-    if (window.confirm(`Tem certeza que deseja excluir a questão "${question.text}"?`)) {
-      try {
-        const success = await deleteQuestion(question.id);
-        if (success) {
-          toast.success("Questão excluída", "A questão foi excluída com sucesso");
-          onUpdate();
+
+    Modal.confirm({
+      title: "Confirmação",
+      content: `Tem certeza que deseja excluir a questão "${question.text}"?`,
+      okText: "Sim",
+      cancelText: "Não",
+      okButtonProps: {
+        style: { backgroundColor: "#805ad5", borderColor: "#805ad5" },
+      },
+      cancelButtonProps: {
+        style: { borderColor: "#805ad5", color: "#805ad5" },
+        className: "custom-cancel-btn",
+      },
+      async onOk() {
+        try {
+          const success = await deleteQuestion(question.id);
+          if (success) {
+            notification.success({
+              message: "Questão excluída",
+              description: "A questão foi excluída com sucesso",
+            });
+            onUpdate();
+          }
+        } catch (error) {
+          console.error("Erro ao excluir questão:", error);
+          notification.error({
+            message: "Erro",
+            description: "Ocorreu um erro ao excluir a questão",
+          });
         }
-      } catch (error) {
-        console.error("Erro ao excluir questão:", error);
-        toast.error("Erro", "Ocorreu um erro ao excluir a questão");
-      }
-    }
+      },
+    });
   };
 
   return (
@@ -67,13 +96,22 @@ export default function QuestionItem({ question, questionnaireId, onUpdate, leve
                 onClick={() => setExpanded(!expanded)}
                 className="mr-2 h-6 w-6 p-0"
               >
-                {expanded ? <FaChevronDown size={14} /> : <FaChevronRight size={14} />}
+                {expanded ? (
+                  <FaChevronDown size={14} />
+                ) : (
+                  <FaChevronRight size={14} />
+                )}
               </Button>
             )}
-            <CardTitle className="text-base text-gray-800 dark:text-white">{question.text}</CardTitle>
+            <CardTitle className="text-base text-gray-800 dark:text-white">
+              {question.text}
+            </CardTitle>
           </div>
           <div className="flex items-center space-x-2">
-            <Badge variant="outline" className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+            <Badge
+              variant="outline"
+              className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+            >
               {formatQuestionType(question.type)}
             </Badge>
             <div className="flex space-x-1">

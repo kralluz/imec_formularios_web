@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useCallback } from "react";
 import QuestionService from "@/services/question-service";
-import { useCustomToast } from "@/hooks/use-custom-toast";
 import type {
   Question,
   CreateQuestionDTO,
@@ -40,7 +39,6 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<
     string | null
   >(null);
-  const toast = useCustomToast();
 
   // Método para carregar questões de um questionário
   const loadQuestionsByQuestionnaire = useCallback(
@@ -67,25 +65,22 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Método para buscar uma questão por ID
-  const getQuestion = useCallback(
-    async (id: string) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const data = await QuestionService.getQuestionById(id);
-        return data;
-      } catch (err: any) {
-        const errorMessage =
-          err.response?.data?.message || "Erro ao buscar questão";
-        setError(errorMessage);
-        toast.error("Erro", errorMessage);
-        return null;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [toast]
-  );
+  const getQuestion = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await QuestionService.getQuestionById(id);
+      return data;
+    } catch (err: any) {
+      const errorMessage =
+        err.response?.data?.message || "Erro ao buscar questão";
+      setError(errorMessage);
+
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Método para criar uma questão
   const createQuestion = useCallback(
@@ -99,19 +94,19 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
         const organized =
           QuestionService.organizeQuestionsHierarchy(updatedQuestions);
         setHierarchicalQuestions(organized);
-        toast.success("Sucesso", "Questão criada com sucesso");
+
         return newQuestion;
       } catch (err: any) {
         const errorMessage =
           err.response?.data?.message || "Erro ao criar questão";
         setError(errorMessage);
-        toast.error("Erro", errorMessage);
+
         return null;
       } finally {
         setIsLoading(false);
       }
     },
-    [toast, questions]
+    [questions]
   );
 
   // Método para atualizar uma questão
@@ -130,19 +125,19 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
         const organized =
           QuestionService.organizeQuestionsHierarchy(updatedQuestions);
         setHierarchicalQuestions(organized);
-        toast.success("Sucesso", "Questão atualizada com sucesso");
+
         return updatedQuestion;
       } catch (err: any) {
         const errorMessage =
           err.response?.data?.message || "Erro ao atualizar questão";
         setError(errorMessage);
-        toast.error("Erro", errorMessage);
+
         return null;
       } finally {
         setIsLoading(false);
       }
     },
-    [toast, questions]
+    [questions]
   );
 
   // Método para excluir uma questão
@@ -157,19 +152,19 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
         const organized =
           QuestionService.organizeQuestionsHierarchy(updatedQuestions);
         setHierarchicalQuestions(organized);
-        toast.success("Sucesso", "Questão excluída com sucesso");
+
         return true;
       } catch (err: any) {
         const errorMessage =
           err.response?.data?.message || "Erro ao excluir questão";
         setError(errorMessage);
-        toast.error("Erro", errorMessage);
+
         return false;
       } finally {
         setIsLoading(false);
       }
     },
-    [toast, questions]
+    [questions]
   );
 
   const value = {
