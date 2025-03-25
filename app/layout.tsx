@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 
 import "./globals.css"
+import '@ant-design/v5-patch-for-react-19';
 
 const inter = Inter({ subsets: ["latin"] })
 

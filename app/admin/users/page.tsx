@@ -2,26 +2,37 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaEdit, FaTrash, FaUserPlus, FaPlusCircle } from "react-icons/fa";
-import { Button } from "@/components/ui/button";
+import {
+  FaEdit,
+  FaTrash,
+  FaUserPlus,
+  FaEllipsisV,
+  FaMinusCircle,
+} from "react-icons/fa";
 import { Card } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import UserService from "@/services/user-service";
 import SectorService from "@/services/sector-service";
-import type { User } from "@/services/auth-service";
+import type { User, UserUpdateData } from "@/services/auth-service";
 import type { Sector } from "@/types/sector";
-import { useCustomToast } from "@/hooks/use-custom-toast";
+import { notification, Modal, Button, Dropdown, Menu, Form, Input } from "antd";
+import { DownOutlined } from "@ant-design/icons";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [sectors, setSectors] = useState<Sector[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showSectorSelect, setShowSectorSelect] = useState<{ userId: string; visible: boolean }>({
-    userId: "",
-    visible: false,
-  });
-  const toast = useCustomToast();
   const router = useRouter();
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editForm] = Form.useForm();
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -33,10 +44,16 @@ export default function UsersPage() {
     try {
       const data = await UserService.getAllUsers();
       setUsers(data);
-      toast.success("Usuários carregados", `${data.length} usuários encontrados.`);
+      notification.success({
+        message: "Usuários carregados",
+        description: `${data.length} usuários encontrados.`,
+      });
     } catch (error) {
       console.error("Erro ao carregar usuários:", error);
-      toast.error("Erro ao carregar usuários", "Não foi possível carregar a lista de usuários.");
+      notification.error({
+        message: "Erro ao carregar usuários",
+        description: "Não foi possível carregar a lista de usuários.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -51,63 +68,195 @@ export default function UsersPage() {
     }
   };
 
-  const handleDeleteUser = async (id: string, name: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir o usuário ${name}?`)) {
-      try {
-        await UserService.deleteUser(id);
-        setUsers(users.filter((user) => user.id !== id));
-        toast.success("Usuário excluído", `O usuário ${name} foi excluído com sucesso.`);
-      } catch (error) {
-        console.error("Erro ao excluir usuário:", error);
-        toast.error("Erro ao excluir usuário", "Não foi possível excluir o usuário.");
+  const handleDeleteUser = (id: string, name: string) => {
+    Modal.confirm({
+      title: "Confirmação de Exclusão",
+      content: `Tem certeza que deseja excluir o usuário ${name}?`,
+      okText: "Sim",
+      cancelText: "Não",
+      okButtonProps: {
+        style: { backgroundColor: "#805ad5", borderColor: "#805ad5" },
+      },
+      cancelButtonProps: {
+        style: { borderColor: "#805ad5", color: "#805ad5" },
+        className: "custom-cancel-btn",
+      },
+      onOk: async () => {
+        try {
+          await UserService.deleteUser(id);
+          notification.success({
+            message: "Usuário excluído",
+            description: "Usuário excluído com sucesso.",
+          });
+          loadUsers();
+        } catch (error) {
+          console.error("Erro ao excluir usuário:", error);
+          notification.error({
+            message: "Erro",
+            description: "Não foi possível excluir o usuário.",
+          });
+        }
+      },
+    });
+  };
+
+  const handleAssociateSector = (userId: string, sectorId: string) => {
+    Modal.confirm({
+      title: "Confirmação de Associação",
+      content: `Tem certeza que deseja associar este usuário a este setor?`,
+      okText: "Sim",
+      cancelText: "Não",
+      okButtonProps: {
+        style: { backgroundColor: "#805ad5", borderColor: "#805ad5" }
+      },
+      cancelButtonProps: {
+          style: { borderColor: "#805ad5", color: "#805ad5" },
+          className: "custom-cancel-btn",
+        },
+      onOk: async () => {
+        try {
+          await SectorService.associateUserToSector(userId, sectorId);
+          notification.success({
+            message: "Setor associado",
+            description: "Usuário associado ao setor com sucesso.",
+          });
+          loadUsers();
+        } catch (error) {
+          console.error("Erro ao associar setor:", error);
+          notification.error({
+            message: "Erro",
+            description: "Não foi possível associar o setor.",
+          });
+        }
       }
-    }
+    });
   };
 
-  const handleAssociateSector = async (userId: string, sectorId: string) => {
-    try {
-      await SectorService.associateUserToSector(userId, sectorId);
-      toast.success("Setor associado", "Usuário associado ao setor com sucesso.");
-      setShowSectorSelect({ userId: "", visible: false });
-      loadUsers();
-    } catch (error) {
-      console.error("Erro ao associar setor:", error);
-      toast.error("Erro", "Não foi possível associar o setor.");
-    }
-  };
-
-  const handleDisassociateSector = async (userId: string) => {
-    try {
-      await SectorService.disassociateUserFromSector(userId);
-      toast.success("Setor desassociado", "Usuário desassociado do setor com sucesso.");
-      loadUsers();
-    } catch (error) {
-      console.error("Erro ao desassociar setor:", error);
-      toast.error("Erro", "Não foi possível desassociar o setor.");
-    }
-  };
+    const handleDisassociateSector = (userId: string) => {
+        Modal.confirm({
+            title: "Confirmação de Remoção",
+            content: `Tem certeza que deseja remover o usuário deste setor?`,
+            okText: "Sim",
+            cancelText: "Não",
+             okButtonProps: {
+                style: { backgroundColor: "#805ad5", borderColor: "#805ad5" }
+             },
+            cancelButtonProps: {
+                style: { borderColor: "#805ad5", color: "#805ad5" },
+                className: "custom-cancel-btn",
+            },
+            onOk: async () => {
+                try {
+                    await SectorService.disassociateUserFromSector(userId);
+                    notification.success({
+                        message: "Setor desassociado",
+                        description: "Usuário desassociado do setor com sucesso.",
+                    });
+                    loadUsers();
+                } catch (error) {
+                    console.error("Erro ao desassociar setor:", error);
+                    notification.error({
+                        message: "Erro",
+                        description: "Não foi possível desassociar o setor.",
+                    });
+                }
+            }
+        });
+    };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("pt-BR");
   };
 
+  const buildSectorMenu = (user: User) => (
+    <Menu>
+      {sectors.map((sector) => (
+        <Menu.Item
+          style={{ fontSize: "1.1rem" }}
+          key={sector.id}
+          onClick={() => handleAssociateSector(user.id, sector.id)}
+        >
+          {sector.name}
+        </Menu.Item>
+      ))}
+    </Menu>
+  );
+
+  const showEditModal = (user: User) => {
+    setEditingUser(user);
+    editForm.setFieldsValue({
+      name: user.name,
+      email: user.email,
+    });
+    setIsEditModalVisible(true);
+  };
+
+  const handleEditOk = async () => {
+    try {
+      const values: UserUpdateData = await editForm.validateFields();
+      if (editingUser) {
+        await UserService.updateUser(editingUser.id, values);
+        notification.success({
+          message: "Usuário atualizado",
+          description: "Usuário atualizado com sucesso.",
+        });
+        setIsEditModalVisible(false);
+        loadUsers();
+      }
+    } catch (errorInfo) {
+      console.error("Failed:", errorInfo);
+      notification.error({
+        message: "Erro",
+        description: "Não foi possível atualizar o usuário.",
+      });
+    }
+  };
+
+  const handleEditCancel = () => {
+    setIsEditModalVisible(false);
+  };
+
+  const actionsMenu = (user: User) => (
+    <Menu>
+      <Menu.Item key="edit" onClick={() => showEditModal(user)}>
+        <div className="flex items-center">
+          <FaEdit className="mr-2 text-purple-600 dark:text-purple-400" />
+          <span style={{ fontSize: "1.1rem" }}>Editar</span>
+        </div>
+      </Menu.Item>
+      <Menu.Item
+        key="delete"
+        onClick={() => handleDeleteUser(user.id, user.name)}
+        style={{ color: "red" }}
+      >
+        <div className="flex items-center">
+          <FaTrash className="mr-2 text-red-600 dark:text-red-400" />
+          <span style={{ fontSize: "1.1rem" }}>Excluir</span>
+        </div>
+      </Menu.Item>
+    </Menu>
+  );
+
   return (
     <div className="animate-slide-up opacity-0">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-          <span className="text-purple-600 dark:text-purple-400">Gerenciar Usuários</span>
+          <span className="text-purple-600 dark:text-purple-400">
+            Gerenciar Usuários
+          </span>
         </h1>
         <Button
-          className="bg-purple-700 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-700 transition-all hover-lift"
+          type="primary"
           onClick={() => router.push("/register")}
+          style={{ backgroundColor: "#805ad5", borderColor: "#805ad5" }}
         >
           <FaUserPlus className="mr-2" />
           Novo Usuário
         </Button>
       </div>
 
-      <Card className="overflow-hidden border-gray-200 bg-white shadow-md dark:border-gray-800 dark:bg-gray-800">
+      <Card className="overflow-hidden">
         <div className="p-4">
           {isLoading ? (
             <div className="flex h-40 items-center justify-center">
@@ -118,12 +267,24 @@ export default function UsersPage() {
               <Table>
                 <TableHeader className="bg-gray-100 dark:bg-gray-800">
                   <TableRow>
-                    <TableHead className="text-gray-700 dark:text-gray-300">Nome</TableHead>
-                    <TableHead className="text-gray-700 dark:text-gray-300">Email</TableHead>
-                    <TableHead className="text-gray-700 dark:text-gray-300">Função</TableHead>
-                    <TableHead className="text-gray-700 dark:text-gray-300">Setor</TableHead>
-                    <TableHead className="text-gray-700 dark:text-gray-300">Data de Criação</TableHead>
-                    <TableHead className="text-right text-gray-700 dark:text-gray-300">Ações</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">
+                      Nome
+                    </TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">
+                      Email
+                    </TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">
+                      Função
+                    </TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">
+                      Setor
+                    </TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">
+                      Data de Criação
+                    </TableHead>
+                    <TableHead className="text-right text-gray-700 dark:text-gray-300">
+                      Ações
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -133,74 +294,68 @@ export default function UsersPage() {
                         key={user.id}
                         className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all"
                       >
-                        <TableCell className="font-medium text-gray-800 dark:text-gray-300">{user.name}</TableCell>
-                        <TableCell className="text-gray-700 dark:text-gray-400">{user.email}</TableCell>
+                        <TableCell className="font-medium text-gray-800 dark:text-gray-300">
+                          {user.name}
+                        </TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-400">
+                          {user.email}
+                        </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-400">
                           <span
                             className={`rounded-full px-2 py-1 text-xs ${
                               user.role === "ADMIN"
-                                ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
-                                : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                                ?
+                                  "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
+                                :
+                                  "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
                             }`}
                           >
                             {user.role}
                           </span>
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-400">
-                          {user.sector?.name ? (
-                            <>
-                              {user.sector.name}
-                              <Button variant="ghost" size="sm" onClick={() => handleDisassociateSector(user.id)}>
-                                Desassociar
-                              </Button>
-                            </>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="flex items-center gap-1"
-                              onClick={() => setShowSectorSelect({ userId: user.id, visible: true })}
-                            >
-                              <FaPlusCircle className="text-green-600" />
-                              Associar
-                            </Button>
-                          )}
+                          {user.sector?.name || "Nenhum"}
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-400">
                           {user.createdAt ? formatDate(user.createdAt) : "N/A"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end space-x-2">
+                          {user.sector ? (
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                toast.info(
-                                  "Funcionalidade em desenvolvimento",
-                                  "Esta funcionalidade estará disponível em breve."
-                                )
-                              }
-                              className="text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 hover-lift"
+                              type="text"
+                              className="mr-2 text-red-600"
+                              onClick={() => handleDisassociateSector(user.id)}
                             >
-                              <FaEdit className="text-purple-600 dark:text-purple-400" />
-                              <span className="sr-only">Editar</span>
+                              <FaMinusCircle className="mr-1" /> Remover Setor
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteUser(user.id, user.name)}
-                              className="text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 hover-lift"
+                          ) : (
+                            <Dropdown
+                              overlay={buildSectorMenu(user)}
+                              trigger={["click"]}
                             >
-                              <FaTrash className="text-red-600 dark:text-red-400" />
-                              <span className="sr-only">Excluir</span>
+                              <Button type="text" className="mr-2">
+                                Setor <DownOutlined />
+                              </Button>
+                            </Dropdown>
+                          )}
+
+                          <Dropdown
+                            overlay={actionsMenu(user)}
+                            trigger={["click"]}
+                          >
+                            <Button type="text">
+                              <FaEllipsisV />
                             </Button>
-                          </div>
+                          </Dropdown>
                         </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-gray-700 dark:text-gray-400">
+                      <TableCell
+                        colSpan={6}
+                        className="h-24 text-center text-gray-700 dark:text-gray-400"
+                      >
                         Nenhum usuário encontrado.
                       </TableCell>
                     </TableRow>
@@ -212,31 +367,44 @@ export default function UsersPage() {
         </div>
       </Card>
 
-      {/* Se a flag showSectorSelect estiver ativa, renderiza uma lista simples para escolher o setor */}
-      {showSectorSelect.visible && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
-          <div className="bg-white p-6 rounded shadow-md w-80">
-            <h2 className="text-xl font-bold mb-4">Selecione um Setor</h2>
-            <ul>
-              {sectors.map((sector) => (
-                <li key={sector.id} className="mb-2">
-                  <button
-                    className="w-full text-left p-2 border border-gray-200 rounded hover:bg-gray-100"
-                    onClick={() => handleAssociateSector(showSectorSelect.userId, sector.id)}
-                  >
-                    {sector.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 flex justify-end">
-              <Button variant="outline" onClick={() => setShowSectorSelect({ userId: "", visible: false })}>
-                Cancelar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title="Editar Usuário"
+        open={isEditModalVisible}
+        onOk={handleEditOk}
+        onCancel={handleEditCancel}
+        okText="Salvar"
+        cancelText="Cancelar"
+        okButtonProps={{ style: { backgroundColor: "#805ad5", borderColor: "#805ad5" } }}
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item
+            name="name"
+            label="Nome"
+            rules={[{ required: true, message: "Por favor, insira o nome!" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: "Por favor, insira o email!" },
+              { type: "email", message: "Por favor, insira um email válido!" },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="Senha"
+            rules={[
+              { min: 6, message: 'A senha deve ter pelo menos 6 caracteres!' },
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

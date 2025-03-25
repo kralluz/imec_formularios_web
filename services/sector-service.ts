@@ -67,8 +67,9 @@ const SectorService = {
     if (!isValidUUID(sectorId)) {
       throw new Error("ID de setor inválido");
     }
-    // Assumindo que a API possui um endpoint PUT /users/{userId}/sector que associa o setor
-    const response = await api.put<User>(`/users/${userId}/sector`, {
+    // Atualizado: envia PUT para /sectors/users/{userId} com body contendo userId e sectorId
+    const response = await api.put<User>(`/sectors/users/${userId}`, {
+      userId,
       sectorId,
     });
     return response.data;
@@ -77,7 +78,7 @@ const SectorService = {
   // Desassociar o setor de um usuário
   async disassociateUserFromSector(userId: string): Promise<User> {
     // Aqui enviamos null ou uma propriedade específica para remover a associação
-    const response = await api.put<User>(`/users/${userId}/sector`, {
+    const response = await api.put<User>(`/sectors/users/${userId}`, {
       sectorId: null,
     });
     return response.data;
