@@ -1,4 +1,4 @@
-"use client"
+  "use client"
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
@@ -16,14 +16,19 @@ export default function QuestionnaireDetailsPage() {
   const toast = useCustomToast()
 
   const [title, setTitle] = useState("")
+  const [showContent, setShowContent] = useState(false)
 
   useEffect(() => {
     const fetchQuestionnaire = async () => {
+      console.log("Iniciando busca do questionário:", questionnaireId)
       try {
         const questionnaire = await getQuestionnaire(questionnaireId)
         if (questionnaire) {
           setTitle(questionnaire.title)
+          console.log("Questionário carregado:", questionnaire.title)
+          setShowContent(true)
         } else {
+          console.error("Questionário não encontrado:", questionnaireId)
           toast.error("Erro", "Questionário não encontrado")
           router.push("/admin/questionnaires")
         }
@@ -34,8 +39,9 @@ export default function QuestionnaireDetailsPage() {
       }
     }
 
+    // Executa o efeito apenas quando o questionnaireId mudar
     fetchQuestionnaire()
-  }, [questionnaireId, getQuestionnaire, router, toast])
+  }, [questionnaireId])
 
   if (isLoading) {
     return (
@@ -46,15 +52,10 @@ export default function QuestionnaireDetailsPage() {
   }
 
   return (
-    <div className="animate-scale-in opacity-0">
+    <div className={`animate-scale-in transition-opacity duration-500 ${showContent ? "opacity-100" : "opacity-0"}`}>
       <div className="mb-6">
         <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => router.push("/admin/questionnaires")}
-            className="h-8 w-8"
-          >
+          <Button onClick={() => router.push("/admin/questionnaires")} className="h-8 w-8">
             <FaArrowLeft />
           </Button>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
@@ -63,9 +64,7 @@ export default function QuestionnaireDetailsPage() {
         </div>
         <p className="mt-2 text-gray-600 dark:text-gray-400">Gerencie as questões deste questionário</p>
       </div>
-
       <QuestionnaireQuestions questionnaireId={questionnaireId} title={title} />
     </div>
   )
 }
-

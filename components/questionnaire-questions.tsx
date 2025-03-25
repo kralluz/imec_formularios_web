@@ -21,22 +21,23 @@ export default function QuestionnaireQuestions({ questionnaireId, title }: Quest
   const [showAddForm, setShowAddForm] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  // Carregar questões quando o componente montar ou o questionnaireId mudar
   useEffect(() => {
     const fetchQuestions = async () => {
+      console.log("Carregando questões para o questionário:", questionnaireId, "RefreshKey:", refreshKey)
       try {
         await loadQuestionsByQuestionnaire(questionnaireId)
+        console.log("Questões carregadas com sucesso.")
       } catch (error) {
         console.error("Erro ao carregar questões:", error)
         toast.error("Erro", "Não foi possível carregar as questões do questionário")
       }
     }
-
     fetchQuestions()
-  }, [questionnaireId, loadQuestionsByQuestionnaire, toast, refreshKey])
+    // O efeito roda apenas quando questionnaireId ou refreshKey mudar
+  }, [questionnaireId, refreshKey])
 
-  // Função para forçar a atualização dos dados
   const handleUpdate = () => {
+    console.log("Atualizando lista de questões")
     setRefreshKey((prev) => prev + 1)
   }
 
@@ -58,6 +59,7 @@ export default function QuestionnaireQuestions({ questionnaireId, title }: Quest
               questionnaireId={questionnaireId}
               onCancel={() => setShowAddForm(false)}
               onSuccess={() => {
+                console.log("Questão adicionada com sucesso")
                 setShowAddForm(false)
                 handleUpdate()
               }}
@@ -91,4 +93,3 @@ export default function QuestionnaireQuestions({ questionnaireId, title }: Quest
     </Card>
   )
 }
-
