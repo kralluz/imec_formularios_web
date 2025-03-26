@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { FaEdit, FaTrash, FaPlus } from "react-icons/fa";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -23,8 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSector } from "@/contexts/sector-context";
-// import { useCustomToast } from "@/hooks/use-custom-toast"; // Removed
-import { notification, Modal } from "antd"; // Import antd components
+import { notification, Modal, Button } from "antd";
 
 interface Sector {
   id?: string;
@@ -42,18 +40,31 @@ export default function SectorsPage() {
     isLoading,
     hasLoaded,
   } = useSector();
-  // const toast = useCustomToast(); // Removed
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentSector, setCurrentSector] = useState<Sector>({ name: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Estados para responsividade: se tablet ou menor, ao clicar na linha abre modal
+  const [isTabletOrLess, setIsTabletOrLess] = useState(false);
+  const [isRowModalVisible, setIsRowModalVisible] = useState(false);
+  const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
+
   useEffect(() => {
     if (!hasLoaded) {
       loadSectors();
     }
   }, [loadSectors, hasLoaded]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsTabletOrLess(window.innerWidth <= 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleOpenCreateDialog = () => {
     setCurrentSector({ name: "" });
@@ -78,7 +89,6 @@ export default function SectorsPage() {
 
     try {
       if (!currentSector.name.trim()) {
-        // toast.error("Erro", "O nome do setor é obrigatório"); // Replaced
         notification.error({
           message: "Erro",
           description: "O nome do setor é obrigatório",
@@ -102,7 +112,7 @@ export default function SectorsPage() {
       }
 
       handleCloseDialog();
-      loadSectors(); // Reload sectors after create/update
+      loadSectors(); // Recarrega os setores após criar/atualizar
     } catch (error) {
       console.error("Erro ao salvar setor:", error);
       notification.error({
@@ -116,7 +126,6 @@ export default function SectorsPage() {
 
   const handleDeleteSector = async (id?: string, name?: string) => {
     if (!id) {
-      // toast.error("Erro", "ID do setor não encontrado"); // Replaced
       notification.error({
         message: "Erro",
         description: "ID do setor não encontrado",
@@ -124,19 +133,18 @@ export default function SectorsPage() {
       return;
     }
 
-    // if (window.confirm(`Tem certeza que deseja excluir o setor "${name}"?`)) { // Replaced
     Modal.confirm({
       title: "Confirmação",
       content: `Tem certeza que deseja excluir o setor "${name}"?`,
       okText: "Sim",
       cancelText: "Não",
       okButtonProps: {
-        style: { backgroundColor: "#805ad5", borderColor: "#805ad5" }
+        style: { backgroundColor: "#805ad5", borderColor: "#805ad5" },
       },
-       cancelButtonProps: {
-          style: { borderColor: "#805ad5", color: "#805ad5" },
-          className: "custom-cancel-btn",
-       },
+      cancelButtonProps: {
+        style: { borderColor: "#805ad5", color: "#805ad5" },
+        className: "custom-cancel-btn",
+      },
       onOk: async () => {
         try {
           await deleteSector(id);
@@ -144,7 +152,7 @@ export default function SectorsPage() {
             message: "Sucesso",
             description: "Setor excluído com sucesso!",
           });
-          loadSectors(); // Reload sectors after deletion
+          loadSectors();
         } catch (error) {
           console.error("Erro ao excluir setor:", error);
           notification.error({
@@ -154,13 +162,20 @@ export default function SectorsPage() {
         }
       },
     });
-    // }
   };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleDateString("pt-BR");
+  };
+
+  // Responsividade: ao clicar na linha em telas menores, abre modal com os detalhes
+  const handleRowClick = (sector: Sector) => {
+    if (isTabletOrLess) {
+      setSelectedSector(sector);
+      setIsRowModalVisible(true);
+    }
   };
 
   return (
@@ -172,7 +187,8 @@ export default function SectorsPage() {
           </span>
         </h1>
         <Button
-          className="bg-purple-700 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-700 transition-all hover-lift"
+          type="primary"
+          style={{ backgroundColor: "#805ad5", borderColor: "#805ad5" }}
           onClick={handleOpenCreateDialog}
         >
           <FaPlus className="mr-2" />
@@ -207,7 +223,8 @@ export default function SectorsPage() {
                     sectors.map((sector) => (
                       <TableRow
                         key={sector.id}
-                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all"
+                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all cursor-pointer"
+                        onClick={() => handleRowClick(sector)}
                       >
                         <TableCell className="font-medium text-gray-800 dark:text-gray-300">
                           {sector.name}
@@ -216,33 +233,46 @@ export default function SectorsPage() {
                           {formatDate(sector.createdAt)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleOpenEditDialog({
-                                  id: sector.id,
-                                  name: sector.name,
-                                })
-                              }
-                              className="text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 hover-lift"
-                            >
-                              <FaEdit className="text-purple-600 dark:text-purple-400" />
-                              <span className="sr-only">Editar</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleDeleteSector(sector.id, sector.name)
-                              }
-                              className="text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 hover-lift"
-                            >
-                              <FaTrash className="text-red-600 dark:text-red-400" />
-                              <span className="sr-only">Excluir</span>
-                            </Button>
-                          </div>
+                          {/* Em telas maiores, exibe os botões de ação na linha */}
+                          {!isTabletOrLess && (
+                            <div className="flex justify-end space-x-2">
+                              <Button
+                                type="default"
+                                variant="outlined"
+                                style={{
+                                  borderColor: "#8b5cf6",
+                                  color: "#8b5cf6",
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEditDialog({
+                                    id: sector.id,
+                                    name: sector.name,
+                                  });
+                                }}
+                                title="Editar"
+                              >
+                                <FaEdit style={{ color: "#8b5cf6" }} />
+                                <span>Editar</span>
+                              </Button>
+                              <Button
+                                type="default"
+                                variant="outlined"
+                                style={{
+                                  borderColor: "red",
+                                  color: "red",
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteSector(sector.id, sector.name);
+                                }}
+                                title="Excluir"
+                              >
+                                <FaTrash style={{ color: "red" }} />
+                                <span>Excluir</span>
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
@@ -263,6 +293,7 @@ export default function SectorsPage() {
         </div>
       </Card>
 
+      {/* Dialog para criação/edição de setor */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -297,22 +328,83 @@ export default function SectorsPage() {
               <Button
                 type="button"
                 variant="outline"
+                style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
                 onClick={handleCloseDialog}
-                className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 Cancelar
               </Button>
               <Button
+                type="default"
+                variant="outlined"
+                style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-purple-700 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-700"
               >
-                {isSubmitting ? "Salvando..." : isEditMode ? "Atualizar" : "Criar"}
+                {isSubmitting
+                  ? "Salvando..."
+                  : isEditMode
+                  ? "Atualizar"
+                  : "Criar"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal (Ant Design) para detalhes e ações em telas tablet ou menores */}
+      <Modal
+        title={selectedSector?.name}
+        open={isRowModalVisible}
+        onCancel={() => setIsRowModalVisible(false)}
+        footer={[
+          <Button
+            key="cancel"
+            type="default"
+            variant="outlined"
+            style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
+            onClick={() => setIsRowModalVisible(false)}
+          >
+            Cancelar
+          </Button>,
+          <Button
+            key="edit"
+            type="default"
+            variant="outlined"
+            style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
+            onClick={() => {
+              if (selectedSector) {
+                handleOpenEditDialog(selectedSector);
+                setIsRowModalVisible(false);
+              }
+            }}
+          >
+            <FaEdit style={{ color: "#8b5cf6", marginRight: 4 }} />
+            Editar
+          </Button>,
+          <Button
+            key="delete"
+            type="default"
+            variant="outlined"
+            style={{ borderColor: "red", color: "red" }}
+            onClick={() => {
+              if (selectedSector) {
+                handleDeleteSector(selectedSector.id, selectedSector.name);
+                setIsRowModalVisible(false);
+              }
+            }}
+          >
+            <FaTrash style={{ color: "red", marginRight: 4 }} />
+            Excluir
+          </Button>,
+        ]}
+      >
+        <p>
+          <strong>Data de Criação:</strong>{" "}
+          {selectedSector?.createdAt
+            ? formatDate(selectedSector.createdAt)
+            : "N/A"}
+        </p>
+      </Modal>
     </div>
   );
-} 
+}

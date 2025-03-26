@@ -1,68 +1,155 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { FaEdit, FaTrash, FaPlus, FaFileAlt, FaList } from "react-icons/fa"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useQuestionnaire } from "@/contexts/questionnaire-context"
-import { useAuth } from "@/contexts/auth-context"
-import { useCustomToast } from "@/hooks/use-custom-toast"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { FaEdit, FaTrash, FaPlus, FaFileAlt, FaList } from "react-icons/fa";
+import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useQuestionnaire } from "@/contexts/questionnaire-context";
+import { useAuth } from "@/contexts/auth-context";
+import { Button, Modal, message } from "antd";
 
 export default function QuestionnairesPage() {
-  const { questionnaires, loadQuestionnaires, deleteQuestionnaire, isLoading } = useQuestionnaire()
-  const { user } = useAuth()
-  const router = useRouter()
-  const toast = useCustomToast()
-  const [hasLoaded, setHasLoaded] = useState(false)
+  const { questionnaires, loadQuestionnaires, deleteQuestionnaire, isLoading } =
+    useQuestionnaire();
+  const { user } = useAuth();
+  const router = useRouter();
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [isTabletOrLess, setIsTabletOrLess] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<any>(null);
+
+  // Detecta o tamanho da tela (tablet ou menor)
+  useEffect(() => {
+    const handleResize = () => {
+      setIsTabletOrLess(window.innerWidth <= 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
-    // Evitar múltiplas chamadas à API
     if (!hasLoaded) {
       const fetchData = async () => {
         try {
-          await loadQuestionnaires()
+          await loadQuestionnaires();
         } catch (error) {
-          console.error("Erro ao carregar questionários:", error)
-          toast.error("Erro", "Não foi possível carregar os questionários. Tente novamente mais tarde.")
+          console.error("Erro ao carregar questionários:", error);
+          message.error(
+            "Não foi possível carregar os questionários. Tente novamente mais tarde."
+          );
         } finally {
-          setHasLoaded(true)
+          setHasLoaded(true);
         }
-      }
-
-      fetchData()
+      };
+      fetchData();
     }
-  }, [loadQuestionnaires, hasLoaded, toast])
+  }, [loadQuestionnaires, hasLoaded]);
 
   const handleDeleteQuestionnaire = async (id: string, title: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir o questionário "${title}"?`)) {
+    if (
+      window.confirm(
+        `Tem certeza que deseja excluir o questionário "${title}"?`
+      )
+    ) {
       try {
-        const success = await deleteQuestionnaire(id)
+        const success = await deleteQuestionnaire(id);
         if (success) {
-          toast.success("Questionário excluído", `O questionário "${title}" foi excluído com sucesso.`)
+          message.success(
+            `O questionário "${title}" foi excluído com sucesso.`
+          );
+          setIsModalVisible(false);
         }
       } catch (error) {
-        console.error("Erro ao excluir questionário:", error)
-        toast.error("Erro", "Não foi possível excluir o questionário. Tente novamente mais tarde.")
+        console.error("Erro ao excluir questionário:", error);
+        message.error(
+          "Não foi possível excluir o questionário. Tente novamente mais tarde."
+        );
       }
     }
-  }
+  };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A"
-    const date = new Date(dateString)
-    return date.toLocaleDateString("pt-BR")
-  }
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("pt-BR");
+  };
+
+  // Abre o modal ao clicar na linha (em telas menores)
+  const handleRowClick = (questionnaire: any) => {
+    if (isTabletOrLess) {
+      setSelectedQuestionnaire(questionnaire);
+      setIsModalVisible(true);
+    }
+  };
+
+  // Renderiza os botões de ação
+  const renderActionButtons = (questionnaire: any) => (
+    <div className="flex justify-end space-x-2">
+      <Button
+        type="default"
+        variant="outlined"
+        style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          router.push(`/admin/questionnaires/${questionnaire.id}`);
+        }}
+        className="flex items-center space-x-1 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-all"
+        title="Gerenciar Questões"
+      >
+        <FaList className="text-purple-600 dark:text-purple-400" />
+        <span>Questões</span>
+      </Button>
+      <Button
+        type="default"
+        variant="outlined"
+        style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          router.push(`/admin/questionnaires/edit/${questionnaire.id}`);
+        }}
+        className="flex items-center space-x-1 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-all"
+        title="Editar Questionário"
+      >
+        <FaEdit className="text-purple-600 dark:text-purple-400" />
+        <span>Editar</span>
+      </Button>
+      <Button
+        type="default"
+        variant="outlined"
+        style={{ borderColor: "red", color: "red" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleDeleteQuestionnaire(questionnaire.id, questionnaire.title);
+        }}
+        className="flex items-center space-x-1 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-all"
+        title="Excluir Questionário"
+      >
+        <FaTrash style={{ color: "red" }} />
+        <span style={{ color: "red" }}>Excluir</span>
+      </Button>
+    </div>
+  );
 
   return (
     <div className="animate-slide-up opacity-0">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-          <span className="text-purple-600 dark:text-purple-400">Gerenciar Questionários</span>
+          <span className="text-purple-600 dark:text-purple-400">
+            Gerenciar Questionários
+          </span>
         </h1>
         <Button
-          className="bg-purple-700 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-700 transition-all hover-lift"
+          type="primary"
+          style={{ backgroundColor: "#805ad5", borderColor: "#805ad5" }}
           onClick={() => router.push("/admin/questionnaires/new")}
         >
           <FaPlus className="mr-2" />
@@ -81,10 +168,18 @@ export default function QuestionnairesPage() {
               <Table>
                 <TableHeader className="bg-gray-100 dark:bg-gray-800">
                   <TableRow>
-                    <TableHead className="text-gray-700 dark:text-gray-300">Título</TableHead>
-                    <TableHead className="text-gray-700 dark:text-gray-300">Responsáveis</TableHead>
-                    <TableHead className="text-gray-700 dark:text-gray-300">Data de Criação</TableHead>
-                    <TableHead className="text-right text-gray-700 dark:text-gray-300">Ações</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">
+                      Título
+                    </TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">
+                      Responsáveis
+                    </TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">
+                      Data de Criação
+                    </TableHead>
+                    <TableHead className="text-right text-gray-700 dark:text-gray-300">
+                      Ações
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -92,7 +187,8 @@ export default function QuestionnairesPage() {
                     questionnaires.map((questionnaire) => (
                       <TableRow
                         key={questionnaire.id}
-                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all"
+                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all cursor-pointer"
+                        onClick={() => handleRowClick(questionnaire)}
                       >
                         <TableCell className="font-medium text-gray-800 dark:text-gray-300">
                           <div className="flex items-center">
@@ -113,44 +209,17 @@ export default function QuestionnairesPage() {
                           {formatDate(questionnaire.createdAt)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => router.push(`/admin/questionnaires/${questionnaire.id}`)}
-                              className="text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 hover-lift"
-                              title="Gerenciar Questões"
-                            >
-                              <FaList className="text-purple-600 dark:text-purple-400" />
-                              <span className="sr-only">Questões</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => router.push(`/admin/questionnaires/edit/${questionnaire.id}`)}
-                              className="text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 hover-lift"
-                              title="Editar Questionário"
-                            >
-                              <FaEdit className="text-purple-600 dark:text-purple-400" />
-                              <span className="sr-only">Editar</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteQuestionnaire(questionnaire.id!, questionnaire.title)}
-                              className="text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 hover-lift"
-                              title="Excluir Questionário"
-                            >
-                              <FaTrash className="text-red-600 dark:text-red-400" />
-                              <span className="sr-only">Excluir</span>
-                            </Button>
-                          </div>
+                          {!isTabletOrLess &&
+                            renderActionButtons(questionnaire)}
                         </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center text-gray-700 dark:text-gray-400">
+                      <TableCell
+                        colSpan={4}
+                        className="h-24 text-center text-gray-700 dark:text-gray-400"
+                      >
                         Nenhum questionário encontrado.
                       </TableCell>
                     </TableRow>
@@ -161,7 +230,71 @@ export default function QuestionnairesPage() {
           )}
         </div>
       </Card>
-    </div>
-  )
-}
 
+      {/* Modal do AntD para telas pequenas */}
+      <Modal
+        title={selectedQuestionnaire?.title}
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={[
+          <div key="actions" className="flex space-x-2">
+            <Button
+              variant="outlined"
+              type="default"
+              style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
+              onClick={() => {
+                router.push(
+                  `/admin/questionnaires/${selectedQuestionnaire?.id}`
+                );
+                setIsModalVisible(false);
+              }}
+              title="Gerenciar Questões"
+            >
+              <FaList className="text-purple-600 dark:text-purple-400" />
+              <span>Questões</span>
+            </Button>
+            <Button
+              variant="outlined"
+              type="default"
+              style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
+              onClick={() => {
+                router.push(
+                  `/admin/questionnaires/edit/${selectedQuestionnaire?.id}`
+                );
+                setIsModalVisible(false);
+              }}
+              title="Editar Questionário"
+            >
+              <FaEdit className="text-purple-600 dark:text-purple-400" />
+              <span>Editar</span>
+            </Button>
+            <Button
+              type="default"
+              variant="outlined"
+              danger
+              onClick={() =>
+                handleDeleteQuestionnaire(
+                  selectedQuestionnaire?.id,
+                  selectedQuestionnaire?.title
+                )
+              }
+              title="Excluir Questionário"
+            >
+              <FaTrash style={{ color: "red" }} />
+              <span>Excluir</span>
+            </Button>
+          </div>,
+        ]}
+      >
+        <p className="text-gray-700 dark:text-gray-300">
+          <strong>Responsáveis:</strong>{" "}
+          {selectedQuestionnaire?.responsibles?.length || 0}
+        </p>
+        <p className="text-gray-700 dark:text-gray-300">
+          <strong>Data de Criação:</strong>{" "}
+          {formatDate(selectedQuestionnaire?.createdAt)}
+        </p>
+      </Modal>
+    </div>
+  );
+}

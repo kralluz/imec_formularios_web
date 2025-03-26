@@ -34,9 +34,23 @@ export default function UsersPage() {
   const [editForm] = Form.useForm();
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
+  // Estados para responsividade (modal para telas menores)
+  const [isTabletOrLess, setIsTabletOrLess] = useState(false);
+  const [isRowModalVisible, setIsRowModalVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
   useEffect(() => {
     loadUsers();
     loadSectors();
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsTabletOrLess(window.innerWidth <= 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const loadUsers = async () => {
@@ -44,12 +58,7 @@ export default function UsersPage() {
     try {
       const data = await UserService.getAllUsers();
       setUsers(data);
-      // Removido o toast de sucesso aqui para evitar duplicidade,
-      // pois as funções de ação já mostram sua própria notificação.
-      // notification.success({
-      //   message: "Usuários carregados",
-      //   description: `${data.length} usuários encontrados.`,
-      // });
+      // Notificação de sucesso removida para evitar duplicidade
     } catch (error) {
       console.error("Erro ao carregar usuários:", error);
       notification.error({
@@ -97,10 +106,9 @@ export default function UsersPage() {
           console.error("Erro ao excluir usuário:", error);
           notification.error({
             message: "Erro",
-            description: `${
+            description:
               error.response?.data?.error ||
-              "Não foi possível excluir o usuário."
-            }`,
+              "Não foi possível excluir o usuário.",
           });
         }
       },
@@ -176,7 +184,7 @@ export default function UsersPage() {
     return date.toLocaleDateString("pt-BR");
   };
 
-  // Converte a lista de setores para um array de itens para o Dropdown
+  // Converte a lista de setores para itens do Dropdown
   const buildSectorMenuItems = (user: User) =>
     sectors.map((sector: any) => ({
       key: sector.id,
@@ -184,14 +192,17 @@ export default function UsersPage() {
       onClick: () => handleAssociateSector(user.id, sector.id),
     })) as any[];
 
-  // Converte a lista de ações para um array de itens para o Dropdown
+  // Converte a lista de ações para itens do Dropdown, com textos e ícones em roxo
   const buildActionsMenuItems = (user: User) => [
     {
       key: "edit",
       label: (
-        <div className="flex items-center">
-          <FaEdit className="mr-2 text-purple-600 dark:text-purple-400" />
-          <span style={{ fontSize: "1.1rem" }}>Editar</span>
+        <div
+          className="flex items-center"
+          style={{ color: "#805ad5", fontSize: "1.1rem" }}
+        >
+          <FaEdit className="mr-2" style={{ color: "#805ad5" }} />
+          <span>Editar</span>
         </div>
       ),
       onClick: () => showEditModal(user),
@@ -199,13 +210,15 @@ export default function UsersPage() {
     {
       key: "delete",
       label: (
-        <div className="flex items-center">
-          <FaTrash className="mr-2 text-red-600 dark:text-red-400" />
-          <span style={{ fontSize: "1.1rem" }}>Excluir</span>
+        <div
+          className="flex items-center"
+          style={{ color: "#805ad5", fontSize: "1.1rem" }}
+        >
+          <FaTrash className="mr-2" style={{ color: "red" }} />
+          <span style={{ color: "red" }}>Excluir</span>
         </div>
       ),
       onClick: () => handleDeleteUser(user.id, user.name),
-      danger: true,
     },
   ];
 
@@ -231,7 +244,7 @@ export default function UsersPage() {
         loadUsers();
       }
     } catch (errorInfo) {
-      console.error("Failed:", errorInfo);
+      console.error("Falha ao atualizar:", errorInfo);
       notification.error({
         message: "Erro",
         description: "Não foi possível atualizar o usuário.",
@@ -241,6 +254,14 @@ export default function UsersPage() {
 
   const handleEditCancel = () => {
     setIsEditModalVisible(false);
+  };
+
+  // Para telas tablet ou menores, ao clicar na linha abre modal com informações e ações
+  const handleRowClick = (user: User) => {
+    if (isTabletOrLess) {
+      setSelectedUser(user);
+      setIsRowModalVisible(true);
+    }
   };
 
   return (
@@ -297,7 +318,8 @@ export default function UsersPage() {
                     users.map((user) => (
                       <TableRow
                         key={user.id}
-                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all"
+                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all cursor-pointer"
+                        onClick={() => handleRowClick(user)}
                       >
                         <TableCell className="font-medium text-gray-800 dark:text-gray-300">
                           {user.name}
@@ -323,33 +345,45 @@ export default function UsersPage() {
                           {user.createdAt ? formatDate(user.createdAt) : "N/A"}
                         </TableCell>
                         <TableCell className="text-right">
-                          {user.sector ? (
-                            <Button
-                              type="text"
-                              className="mr-2 text-red-600"
-                              onClick={() => handleDisassociateSector(user.id)}
-                            >
-                              <FaMinusCircle className="mr-1" /> Remover Setor
-                            </Button>
-                          ) : (
-                            <Dropdown
-                              menu={{ items: buildSectorMenuItems(user) }}
-                              trigger={["click"]}
-                            >
-                              <Button type="text" className="mr-2">
-                                Setor <FaCaretDown />
-                              </Button>
-                            </Dropdown>
+                          {/** Em telas maiores, mostra as ações via Dropdown */}
+                          {!isTabletOrLess && (
+                            <>
+                              {user.sector ? (
+                                <Button
+                                  type="text"
+                                  className="mr-2"
+                                  style={{ color: "red" }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDisassociateSector(user.id);
+                                  }}
+                                >
+                                  <FaMinusCircle className="mr-1" />
+                                  Remover Setor
+                                </Button>
+                              ) : (
+                                <Dropdown
+                                  menu={{ items: buildSectorMenuItems(user) }}
+                                  trigger={["click"]}
+                                >
+                                  <Button type="text" className="mr-2">
+                                    Setor <FaCaretDown />
+                                  </Button>
+                                </Dropdown>
+                              )}
+                              <Dropdown
+                                menu={{ items: buildActionsMenuItems(user) }}
+                                trigger={["click"]}
+                              >
+                                <Button
+                                  type="text"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <FaEllipsisV />
+                                </Button>
+                              </Dropdown>
+                            </>
                           )}
-
-                          <Dropdown
-                            menu={{ items: buildActionsMenuItems(user) }}
-                            trigger={["click"]}
-                          >
-                            <Button type="text">
-                              <FaEllipsisV />
-                            </Button>
-                          </Dropdown>
                         </TableCell>
                       </TableRow>
                     ))
@@ -370,6 +404,7 @@ export default function UsersPage() {
         </div>
       </Card>
 
+      {/* Modal para edição */}
       <Modal
         title="Editar Usuário"
         open={isEditModalVisible}
@@ -409,6 +444,70 @@ export default function UsersPage() {
             <Input.Password />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Modal para detalhes em telas tablet ou menores */}
+      <Modal
+        title={selectedUser?.name}
+        open={isRowModalVisible}
+        onCancel={() => setIsRowModalVisible(false)}
+        footer={[
+          <Button
+            type="default"
+            variant="outlined"
+            key="cancel"
+            onClick={() => setIsRowModalVisible(false)}
+          >
+            Cancelar
+          </Button>,
+          selectedUser?.sector && (
+            <Button
+              key="remove"
+              type="primary"
+              danger
+              onClick={() => {
+                handleDisassociateSector(selectedUser.id);
+                setIsRowModalVisible(false);
+              }}
+            >
+              <FaMinusCircle style={{ marginRight: 4 }} />
+              Remover Setor
+            </Button>
+          ),
+          <Button
+            key="edit"
+            type="default"
+            style={{ borderColor: "#805ad5" }}
+            onClick={() => {
+              showEditModal(selectedUser!);
+              setIsRowModalVisible(false);
+            }}
+          >
+            <FaEdit style={{ marginRight: 4, color: "#805ad5" }} />
+            <span style={{ color: "#805ad5" }}>Editar</span>
+          </Button>,
+          <Button
+            key="delete"
+            type="default"
+            variant="outlined"
+            danger
+            onClick={() => {
+              handleDeleteUser(selectedUser!.id, selectedUser!.name);
+              setIsRowModalVisible(false);
+            }}
+          >
+            <FaTrash style={{ marginRight: 4 }} />
+            <span>Excluir</span>
+          </Button>,
+        ]}
+      >
+        <p>Email: {selectedUser?.email}</p>
+        <p>Função: {selectedUser?.role}</p>
+        <p>Setor: {selectedUser?.sector?.name || "Nenhum"}</p>
+        <p>
+          Data de Criação:{" "}
+          {selectedUser?.createdAt ? formatDate(selectedUser.createdAt) : "N/A"}
+        </p>
       </Modal>
     </div>
   );
