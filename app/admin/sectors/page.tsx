@@ -331,8 +331,8 @@ export default function SectorsPage() {
             </div>
             <DialogFooter className="flex justify-between">
               <Button
-                type="button"
-                variant="outline"
+                type="default"
+                variant="outlined"
                 style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
                 onClick={handleCloseDialog}
               >
@@ -342,7 +342,7 @@ export default function SectorsPage() {
                 type="default"
                 variant="outlined"
                 style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
-                type="submit"
+                htmlType="submit"
                 disabled={isSubmitting}
               >
                 {isSubmitting

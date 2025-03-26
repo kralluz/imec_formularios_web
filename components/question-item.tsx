@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuestion } from "@/contexts/question-context";
 import QuestionForm from "./question-form";
 import type { Question } from "@/types/question";
-import { Button, Modal, notification } from "antd";
+import { Button, Modal, notification, Tag } from "antd";
 
 interface QuestionItemProps {
   question: Question;
@@ -108,12 +108,9 @@ export default function QuestionItem({
             </CardTitle>
           </div>
           <div className="flex items-center space-x-2">
-            <Badge
-              variant="outline"
-              className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-            >
+            <Tag style={{ backgroundColor: "#f3f4f6", color: "#4a5568" }}>
               {formatQuestionType(question.type)}
-            </Badge>
+            </Tag>
             <div className="flex space-x-1">
               <Button
                 type="default"
@@ -188,7 +185,7 @@ export default function QuestionItem({
             setShowEditModal(false);
             onUpdate();
           }}
-          getNextIndex={() => question.orderIndex} 
+          getNextIndex={() => question.orderIndex}
         />
       </Modal>
 
@@ -206,7 +203,8 @@ export default function QuestionItem({
           initialValues={{}}
           defaultIndex={
             question.childQuestions && question.childQuestions.length > 0
-              ? Math.max(...question.childQuestions.map((q) => q.orderIndex)) + 1
+              ? Math.max(...question.childQuestions.map((q) => q.orderIndex)) +
+                1
               : 1
           }
           onCancel={() => setShowAddModal(false)}
@@ -216,7 +214,10 @@ export default function QuestionItem({
           }}
           getNextIndex={() => {
             if (question.childQuestions && question.childQuestions.length > 0) {
-              return Math.max(...question.childQuestions.map((q) => q.orderIndex)) + 1;
+              return (
+                Math.max(...question.childQuestions.map((q) => q.orderIndex)) +
+                1
+              );
             }
             return 1;
           }}
