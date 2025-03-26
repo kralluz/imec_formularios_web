@@ -53,6 +53,10 @@ export default function UsersPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  notification.config({
+    placement: "bottomRight",
+  });
+
   const loadUsers = async () => {
     setIsLoading(true);
     try {

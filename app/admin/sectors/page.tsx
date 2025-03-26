@@ -51,6 +51,8 @@ export default function SectorsPage() {
   const [isRowModalVisible, setIsRowModalVisible] = useState(false);
   const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
 
+  notification.config({ placement: "bottomRight" });
+
   useEffect(() => {
     if (!hasLoaded) {
       loadSectors();
@@ -309,7 +311,10 @@ export default function SectorsPage() {
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">
+                <Label
+                  htmlFor="name"
+                  className="text-gray-700 dark:text-gray-300"
+                >
                   Nome do Setor
                 </Label>
                 <Input

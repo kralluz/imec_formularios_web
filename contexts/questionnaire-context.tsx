@@ -131,11 +131,6 @@ export function QuestionnaireProvider({
           data
         );
         setQuestionnaires((prev) => [...prev, newQuestionnaire]);
-        openNotification(
-          "success",
-          "Sucesso",
-          "Questionário criado com sucesso"
-        );
         return newQuestionnaire;
       } catch (err: any) {
         const errorMessage =

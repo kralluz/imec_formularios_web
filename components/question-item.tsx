@@ -69,6 +69,7 @@ export default function QuestionItem({
             notification.success({
               message: "Questão excluída",
               description: "A questão foi excluída com sucesso",
+              placement: "bottomRight",
             });
             onUpdate();
           }
@@ -77,6 +78,7 @@ export default function QuestionItem({
           notification.error({
             message: "Erro",
             description: "Ocorreu um erro ao excluir a questão",
+            placement: "bottomRight",
           });
         }
       },
