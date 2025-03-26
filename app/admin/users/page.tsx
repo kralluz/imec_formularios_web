@@ -93,11 +93,14 @@ export default function UsersPage() {
             description: "Usuário excluído com sucesso.",
           });
           loadUsers();
-        } catch (error) {
+        } catch (error: any) {
           console.error("Erro ao excluir usuário:", error);
           notification.error({
             message: "Erro",
-            description: "Não foi possível excluir o usuário.",
+            description: `${
+              error.response?.data?.error ||
+              "Não foi possível excluir o usuário."
+            }`,
           });
         }
       },
