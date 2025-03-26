@@ -422,16 +422,17 @@ export default function QuestionnaireForm({
           <Button
             type="default"
             variant="outlined"
+            style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
             onClick={() => router.push("/admin/questionnaires")}
             className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             Cancelar
           </Button>
           <Button
-            type="default"
-            variant="outlined"
+            type="primary"
+            htmlType="submit"
+            style={{ backgroundColor: "#805ad5", borderColor: "#805ad5" }}
             disabled={isSubmitting || isLoading}
-            className="bg-purple-700 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-700"
           >
             {isSubmitting
               ? "Salvando..."

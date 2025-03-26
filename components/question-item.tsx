@@ -107,7 +107,7 @@ export default function QuestionItem({
           </div>
           <div className="flex items-center space-x-2">
             <Badge
-              variant=""
+              variant="outline"
               className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
             >
               {formatQuestionType(question.type)}
@@ -186,7 +186,7 @@ export default function QuestionItem({
             setShowEditModal(false);
             onUpdate();
           }}
-          getNextIndex={() => question.orderIndex} // Em edição, o índice não é alterado
+          getNextIndex={() => question.orderIndex} 
         />
       </Modal>
 

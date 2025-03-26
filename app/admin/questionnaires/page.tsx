@@ -55,26 +55,35 @@ export default function QuestionnairesPage() {
   }, [loadQuestionnaires, hasLoaded]);
 
   const handleDeleteQuestionnaire = async (id: string, title: string) => {
-    if (
-      window.confirm(
-        `Tem certeza que deseja excluir o questionário "${title}"?`
-      )
-    ) {
-      try {
-        const success = await deleteQuestionnaire(id);
-        if (success) {
-          message.success(
-            `O questionário "${title}" foi excluído com sucesso.`
+    Modal.confirm({
+      title: "Confirmação de Exclusão",
+      content: `Tem certeza que deseja excluir o questionário "${title}"?`,
+      okText: "Sim",
+      cancelText: "Não",
+      okButtonProps: {
+        style: { backgroundColor: "#805ad5", borderColor: "#805ad5" },
+      },
+      cancelButtonProps: {
+        style: { borderColor: "#805ad5", color: "#805ad5" },
+        className: "custom-cancel-btn",
+      },
+      onOk: async () => {
+        try {
+          const success = await deleteQuestionnaire(id);
+          if (success) {
+            message.success(
+              `O questionário "${title}" foi excluído com sucesso.`
+            );
+            setIsModalVisible(false);
+          }
+        } catch (error) {
+          console.error("Erro ao excluir questionário:", error);
+          message.error(
+            "Não foi possível excluir o questionário. Tente novamente mais tarde."
           );
-          setIsModalVisible(false);
         }
-      } catch (error) {
-        console.error("Erro ao excluir questionário:", error);
-        message.error(
-          "Não foi possível excluir o questionário. Tente novamente mais tarde."
-        );
-      }
-    }
+      },
+    });
   };
 
   const formatDate = (dateString?: string) => {
