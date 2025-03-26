@@ -8,13 +8,12 @@ import {
   FaChevronDown,
   FaChevronRight,
 } from "react-icons/fa";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuestion } from "@/contexts/question-context";
 import QuestionForm from "./question-form";
 import type { Question } from "@/types/question";
-import { Modal, notification } from "antd";
+import { Button, Modal, notification } from "antd";
 
 interface QuestionItemProps {
   question: Question;
@@ -91,8 +90,7 @@ export default function QuestionItem({
           <div className="flex items-center">
             {question.childQuestions && question.childQuestions.length > 0 && (
               <Button
-                variant="ghost"
-                size="icon"
+                type="text"
                 onClick={() => setExpanded(!expanded)}
                 className="mr-2 h-6 w-6 p-0"
               >
@@ -109,35 +107,44 @@ export default function QuestionItem({
           </div>
           <div className="flex items-center space-x-2">
             <Badge
-              variant="outline"
+              variant=""
               className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
             >
               {formatQuestionType(question.type)}
             </Badge>
             <div className="flex space-x-1">
               <Button
-                variant="ghost"
-                size="icon"
+                type="default"
                 onClick={() => setShowEditModal(true)}
-                className="h-7 w-7 text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                style={{
+                  borderColor: "#805ad5",
+                  color: "#805ad5",
+                }}
+                className="hover:bg-purple-50 dark:hover:bg-purple-900/20"
               >
-                <FaEdit size={14} />
+                <FaEdit className="mr-2" /> Editar
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
+                type="default"
                 onClick={handleDelete}
-                className="h-7 w-7 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                style={{
+                  borderColor: "#e53e3e",
+                  color: "#e53e3e",
+                }}
+                className="hover:bg-red-50 dark:hover:bg-red-900/20"
               >
-                <FaTrash size={14} />
+                <FaTrash className="mr-2" /> Excluir
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
+                type="default"
                 onClick={() => setShowAddModal(true)}
-                className="h-7 w-7 text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
+                style={{
+                  borderColor: "#38a169",
+                  color: "#38a169",
+                }}
+                className="hover:bg-green-50 dark:hover:bg-green-900/20"
               >
-                <FaPlus size={14} />
+                <FaPlus className="mr-2" /> Adicionar
               </Button>
             </div>
           </div>
@@ -179,7 +186,7 @@ export default function QuestionItem({
             setShowEditModal(false);
             onUpdate();
           }}
-          getNextIndex={() => 1}
+          getNextIndex={() => question.orderIndex} // Em edição, o índice não é alterado
         />
       </Modal>
 
@@ -195,13 +202,22 @@ export default function QuestionItem({
           questionnaireId={questionnaireId}
           parentQuestionId={question.id}
           initialValues={{}}
-          defaultIndex={1}
+          defaultIndex={
+            question.childQuestions && question.childQuestions.length > 0
+              ? Math.max(...question.childQuestions.map((q) => q.orderIndex)) + 1
+              : 1
+          }
           onCancel={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false);
             onUpdate();
           }}
-          getNextIndex={() => 1}
+          getNextIndex={() => {
+            if (question.childQuestions && question.childQuestions.length > 0) {
+              return Math.max(...question.childQuestions.map((q) => q.orderIndex)) + 1;
+            }
+            return 1;
+          }}
         />
       </Modal>
     </div>

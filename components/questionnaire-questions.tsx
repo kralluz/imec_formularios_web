@@ -22,7 +22,7 @@ export default function QuestionnaireQuestions({
     useQuestion();
   const [refreshKey, setRefreshKey] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<any>(null); // ajuste o tipo conforme necessário
+  const [editingQuestion, setEditingQuestion] = useState<any>(null);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -48,19 +48,14 @@ export default function QuestionnaireQuestions({
     setRefreshKey((prev) => prev + 1);
   };
 
-  // Calcula o próximo índice automaticamente.
-  // Se não for passada uma parentId, calcula para uma pergunta de nível superior;
-  // caso contrário, reinicia a contagem para as perguntas filhas.
   const getNextIndex = (parentId?: string): number => {
     if (!parentId) {
-      // Pergunta de nível superior
       const topQuestions = hierarchicalQuestions.filter(
         (q: any) => !q.parentId
       );
       if (topQuestions.length === 0) return 1;
       return Math.max(...topQuestions.map((q: any) => q.index || 0)) + 1;
     } else {
-      // Pergunta filha
       const parent = hierarchicalQuestions.find((q: any) => q.id === parentId);
       const children = parent?.children || [];
       if (children.length === 0) return 1;
@@ -121,7 +116,7 @@ export default function QuestionnaireQuestions({
                   question={question}
                   questionnaireId={questionnaireId}
                   onUpdate={handleUpdate}
-                  onEdit={openEditModal} // Presume que QuestionItem invoque onEdit para edição
+                  onEdit={openEditModal}
                 />
               ))}
             </div>
@@ -145,14 +140,12 @@ export default function QuestionnaireQuestions({
       >
         <QuestionForm
           questionnaireId={questionnaireId}
-          // Para nova pergunta, o defaultIndex é calculado automaticamente; para edição, usa o índice atual.
           defaultIndex={
             editingQuestion ? editingQuestion.index : getNextIndex()
           }
           initialValues={editingQuestion || {}}
           onCancel={handleModalCancel}
           onSuccess={handleModalSuccess}
-          // Passa a função getNextIndex para que o formulário possa calcular índices para perguntas filhas, se necessário.
           getNextIndex={getNextIndex}
         />
       </Modal>

@@ -3,8 +3,6 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import { FaPlus, FaTrash, FaSave, FaTimes } from "react-icons/fa";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,11 +15,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useQuestion } from "@/contexts/question-context";
 import type { Question, QuestionType, QuestionOption } from "@/types/question";
-import { message } from "antd";
+import { Button, notification } from "antd";
+
+notification.config({
+  placement: "bottomRight",
+});
 
 interface QuestionFormProps {
   questionnaireId: string;
-  parentQuestionId?: string | null;
+  parentQuestionId?: any;
   defaultIndex: number;
   initialValues: Partial<Question>;
   onCancel: () => void;
@@ -46,9 +48,11 @@ export default function QuestionForm({
   const [type, setType] = useState<QuestionType>("text");
   const [orderIndex, setOrderIndex] = useState(defaultIndex);
   const [triggerValue, setTriggerValue] = useState<string | null>(null);
-  const [options, setOptions] = useState<Omit<QuestionOption, "id" | "questionId" | "createdAt">[]>([]);
+  const [options, setOptions] = useState<
+    Omit<QuestionOption, "id" | "questionId" | "createdAt">[]
+  >([]);
 
-  // Carregar dados da questão se estiver editando
+  // Carregar dados da questão se estiver editando; caso contrário, define o índice com getNextIndex
   useEffect(() => {
     if (initialValues && initialValues.id) {
       setText(initialValues.text || "");
@@ -68,11 +72,11 @@ export default function QuestionForm({
     } else {
       setText("");
       setType("text");
-      setOrderIndex(defaultIndex);
+      setOrderIndex(getNextIndex(parentQuestionId));
       setTriggerValue(null);
       setOptions([]);
     }
-  }, [initialValues, defaultIndex]);
+  }, [initialValues, defaultIndex, getNextIndex, parentQuestionId]);
 
   // Adicionar uma nova opção
   const addOption = () => {
@@ -85,7 +89,11 @@ export default function QuestionForm({
   };
 
   // Atualizar uma opção
-  const updateOption = (index: number, field: "label" | "value", value: string) => {
+  const updateOption = (
+    index: number,
+    field: "label" | "value",
+    value: string
+  ) => {
     const updatedOptions = [...options];
     updatedOptions[index] = {
       ...updatedOptions[index],
@@ -106,19 +114,23 @@ export default function QuestionForm({
 
     try {
       if (!text.trim()) {
-        message.error("O texto da questão é obrigatório");
+        notification.error({ message: "O texto da questão é obrigatório" });
         setIsSubmitting(false);
         return;
       }
       if (requiresOptions(type) && options.length === 0) {
-        message.error(`Questões do tipo ${type} precisam ter pelo menos uma opção`);
+        notification.error({
+          message: `Questões do tipo ${type} precisam ter pelo menos uma opção`,
+        });
         setIsSubmitting(false);
         return;
       }
       if (requiresOptions(type)) {
         for (const option of options) {
           if (!option.label.trim() || !option.value.trim()) {
-            message.error("Todas as opções precisam ter rótulo e valor");
+            notification.error({
+              message: "Todas as opções precisam ter rótulo e valor",
+            });
             setIsSubmitting(false);
             return;
           }
@@ -144,170 +156,172 @@ export default function QuestionForm({
           options: requiresOptions(type) ? options : [],
         });
       }
-      message.success(
-        initialValues && initialValues.id
-          ? "A questão foi atualizada com sucesso"
-          : "A questão foi criada com sucesso"
-      );
+      notification.success({
+        message:
+          initialValues && initialValues.id
+            ? "A questão foi atualizada com sucesso"
+            : "A questão foi criada com sucesso",
+      });
       onSuccess();
     } catch (error) {
       console.error("Erro ao salvar questão:", error);
-      message.error("Ocorreu um erro ao salvar a questão");
+      notification.error({
+        message: "Ocorreu um erro ao salvar a questão",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    // Removemos o título duplicado (CardHeader sem CardTitle) pois o Modal já exibe o título.
-    <Card className="border-gray-200 bg-white shadow-md dark:border-gray-800 dark:bg-gray-800">
-      <CardHeader className="pb-2"></CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="text" className="text-gray-700 dark:text-gray-300">
-              Texto da Questão
-            </Label>
-            <Textarea
-              id="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Digite o texto da questão"
+    <div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="text" className="text-gray-700 dark:text-gray-300">
+            Texto da Questão
+          </Label>
+          <Textarea
+            id="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Digite o texto da questão"
+            className="border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500"
+            style={{
+              resize: "none",
+            }}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="type" className="text-gray-700 dark:text-gray-300">
+            Tipo de Questão
+          </Label>
+          <Select
+            value={type}
+            onValueChange={(value: any) => setType(value as QuestionType)}
+          >
+            <SelectTrigger
+              id="type"
               className="border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500"
-              required
+            >
+              <SelectValue placeholder="Selecione o tipo" />
+            </SelectTrigger>
+            <SelectContent style={{ zIndex: 9999 }}>
+              <SelectItem value="text">Texto</SelectItem>
+              <SelectItem value="textarea">Área de Texto</SelectItem>
+              <SelectItem value="number">Número</SelectItem>
+              <SelectItem value="date">Data</SelectItem>
+              <SelectItem value="radio">Múltipla Escolha (Radio)</SelectItem>
+              <SelectItem value="checkbox">
+                Caixas de Seleção (Checkbox)
+              </SelectItem>
+              <SelectItem value="select">Lista Suspensa (Select)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {parentQuestionId && (
+          <div className="space-y-2">
+            <Label
+              htmlFor="triggerValue"
+              className="text-gray-700 dark:text-gray-300"
+            >
+              Valor Gatilho (opcional)
+            </Label>
+            <Input
+              id="triggerValue"
+              value={triggerValue || ""}
+              onChange={(e) => setTriggerValue(e.target.value || null)}
+              placeholder="Valor que ativa esta questão (ex: 'yes')"
+              className="border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Se preenchido, esta questão só será exibida quando a questão pai
+              tiver este valor selecionado.
+            </p>
           </div>
+        )}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="type" className="text-gray-700 dark:text-gray-300">
-                Tipo de Questão
-              </Label>
-              <Select value={type} onValueChange={(value) => setType(value as QuestionType)}>
-                <SelectTrigger
-                  id="type"
-                  className="border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500"
-                >
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent style={{ zIndex: 9999 }}>
-                  <SelectItem value="text">Texto</SelectItem>
-                  <SelectItem value="textarea">Área de Texto</SelectItem>
-                  <SelectItem value="number">Número</SelectItem>
-                  <SelectItem value="date">Data</SelectItem>
-                  <SelectItem value="radio">Múltipla Escolha (Radio)</SelectItem>
-                  <SelectItem value="checkbox">Caixas de Seleção (Checkbox)</SelectItem>
-                  <SelectItem value="select">Lista Suspensa (Select)</SelectItem>
-                </SelectContent>
-              </Select>
+        {requiresOptions(type) && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-gray-700 dark:text-gray-300">Opções</Label>
+              <Button
+                type="default"
+                variant="outlined"
+                onClick={addOption}
+                className="text-purple-600 border-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-400 dark:hover:bg-purple-900/20"
+              >
+                <FaPlus className="mr-1 h-3 w-3" /> Adicionar Opção
+              </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="orderIndex" className="text-gray-700 dark:text-gray-300">
-                Ordem
-              </Label>
-              <Input
-                id="orderIndex"
-                type="number"
-                value={orderIndex}
-                onChange={(e) => setOrderIndex(Number.parseInt(e.target.value) || 0)}
-                className="border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500"
-                min={0}
-              />
-            </div>
-          </div>
-
-          {parentQuestionId && (
-            <div className="space-y-2">
-              <Label htmlFor="triggerValue" className="text-gray-700 dark:text-gray-300">
-                Valor Gatilho (opcional)
-              </Label>
-              <Input
-                id="triggerValue"
-                value={triggerValue || ""}
-                onChange={(e) => setTriggerValue(e.target.value || null)}
-                placeholder="Valor que ativa esta questão (ex: 'yes')"
-                className="border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Se preenchido, esta questão só será exibida quando a questão pai tiver este valor selecionado.
+            {options.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                Nenhuma opção adicionada. Clique em "Adicionar Opção" para
+                incluir opções.
               </p>
-            </div>
-          )}
-
-          {requiresOptions(type) && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-gray-700 dark:text-gray-300">Opções</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addOption}
-                  className="text-purple-600 border-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-400 dark:hover:bg-purple-900/20"
-                >
-                  <FaPlus className="mr-1 h-3 w-3" /> Adicionar Opção
-                </Button>
-              </div>
-              {options.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                  Nenhuma opção adicionada. Clique em "Adicionar Opção" para incluir opções.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {options.map((option, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <Input
-                          value={option.label}
-                          onChange={(e) => updateOption(index, "label", e.target.value)}
-                          placeholder="Rótulo (ex: Sim)"
-                          className="border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <Input
-                          value={option.value}
-                          onChange={(e) => updateOption(index, "value", e.target.value)}
-                          placeholder="Valor (ex: yes)"
-                          className="border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeOption(index)}
-                        className="h-8 w-8 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                      >
-                        <FaTrash className="h-3 w-3" />
-                      </Button>
+            ) : (
+              <div className="space-y-3">
+                {options.map((option, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Input
+                        value={option.label}
+                        onChange={(e) =>
+                          updateOption(index, "label", e.target.value)
+                        }
+                        placeholder="Rótulo (ex: Sim)"
+                        className="border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500"
+                      />
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              <FaTimes className="mr-2 h-4 w-4" /> Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-purple-700 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-700"
-            >
-              <FaSave className="mr-2 h-4 w-4" /> {isSubmitting ? "Salvando..." : "Salvar"}
-            </Button>
+                    <div className="flex-1">
+                      <Input
+                        value={option.value}
+                        onChange={(e) =>
+                          updateOption(index, "value", e.target.value)
+                        }
+                        placeholder="Valor (ex: yes)"
+                        className="border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500"
+                      />
+                    </div>
+                    <Button
+                      variant="outlined"
+                      type="default"
+                      onClick={() => removeOption(index)}
+                      className="h-8 w-8 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                    >
+                      <FaTrash className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        )}
+
+        <div className="flex justify-end space-x-2 pt-2">
+          <Button
+            type="default"
+            variant="outlined"
+            style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
+
+            onClick={onCancel}
+            className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <FaTimes className="mr-2 h-4 w-4" /> Cancelar
+          </Button>
+          <Button
+            type="primary"
+            variant="outlined"
+            disabled={isSubmitting}
+            className="bg-purple-700 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-700"
+          >
+            <FaSave className="mr-2 h-4 w-4" />{" "}
+            {isSubmitting ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
