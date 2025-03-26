@@ -3,8 +3,12 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import AuthService, { type LoginCredentials, type RegisterData, type User } from "@/services/auth-service"
-import { useCustomToast } from "@/hooks/use-custom-toast"
+import AuthService, {
+  type LoginCredentials,
+  type RegisterData,
+  type User,
+} from "@/services/auth-service"
+import { notification } from "antd"
 
 // Definição dos tipos
 type AuthContextType = {
@@ -25,7 +29,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
-  const toast = useCustomToast()
 
   // Verificar o status de autenticação ao carregar a página
   useEffect(() => {
@@ -33,7 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(() => setIsLoading(false))
       .catch(() => {
         setIsLoading(false)
-        toast.error("Erro de autenticação", "Não foi possível verificar seu status de autenticação.")
+        notification.error({
+          message: "Erro de autenticação",
+          description: "Não foi possível verificar seu status de autenticação.",
+        })
       })
   }, [])
 
@@ -53,7 +59,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isValid) {
         setUser(null)
         AuthService.removeTokens()
-        toast.warning("Sessão expirada", "Sua sessão expirou. Por favor, faça login novamente.")
+        notification.warning({
+          message: "Sessão expirada",
+          description:
+            "Sua sessão expirou. Por favor, faça login novamente.",
+        })
         return false
       }
 
@@ -100,9 +110,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Erro ao obter dados do usuário:", userError)
         throw new Error("Não foi possível obter os dados do usuário após login")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao fazer login:", error)
       AuthService.removeTokens() // Limpar qualquer token que possa ter sido salvo
+      const errorMessage =
+        error.response?.data?.error || "Ocorreu um erro ao fazer login."
+      notification.error({
+        message: "Erro ao fazer login",
+        description: errorMessage,
+      })
       throw error
     } finally {
       setIsLoading(false)
@@ -114,13 +130,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
 
     try {
-      // Chamar a API de registro
       await AuthService.register(data)
 
-      // Não faz login automático após registro, apenas retorna sucesso
-      toast.success("Usuário registrado com sucesso", "O novo usuário foi criado e pode fazer login.")
-    } catch (error) {
+      notification.success({
+        message: "Usuário registrado com sucesso",
+        description: "O novo usuário foi criado e pode fazer login.",
+      })
+    } catch (error: any) {
       console.error("Erro ao registrar:", error)
+      const errorMessage =
+        error.response?.data?.error ||
+        "Ocorreu um erro ao registrar o usuário."
+      notification.error({
+        message: "Erro ao registrar",
+        description: errorMessage,
+      })
       throw error
     } finally {
       setIsLoading(false)
@@ -158,4 +182,3 @@ export function useAuth() {
 
   return context
 }
-

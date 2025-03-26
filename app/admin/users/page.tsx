@@ -44,10 +44,12 @@ export default function UsersPage() {
     try {
       const data = await UserService.getAllUsers();
       setUsers(data);
-      notification.success({
-        message: "Usuários carregados",
-        description: `${data.length} usuários encontrados.`,
-      });
+      // Removido o toast de sucesso aqui para evitar duplicidade,
+      // pois as funções de ação já mostram sua própria notificação.
+      // notification.success({
+      //   message: "Usuários carregados",
+      //   description: `${data.length} usuários encontrados.`,
+      // });
     } catch (error) {
       console.error("Erro ao carregar usuários:", error);
       notification.error({
@@ -68,8 +70,10 @@ export default function UsersPage() {
     }
   };
 
+  const { confirm } = Modal;
+
   const handleDeleteUser = (id: string, name: string) => {
-    Modal.confirm({
+    confirm({
       title: "Confirmação de Exclusão",
       content: `Tem certeza que deseja excluir o usuário ${name}?`,
       okText: "Sim",

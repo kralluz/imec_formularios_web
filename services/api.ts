@@ -2,7 +2,7 @@ import axios, { type AxiosRequestConfig } from "axios"
 import AuthService from "./auth-service"
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://https://api-imec-formularios-api.5lsiua.easypanel.host/",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3021//",
   headers: {
     "Content-Type": "application/json",
   },

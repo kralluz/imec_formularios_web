@@ -1,65 +1,65 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
+import { useState } from "react";
+import { FaEye, FaEyeSlash, FaLock, FaUser, FaEnvelope } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 
-import { useState } from "react"
-import { FaEye, FaEyeSlash, FaLock, FaUser, FaEnvelope } from "react-icons/fa"
-import { useRouter } from "next/navigation"
-
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useAuth } from "@/contexts/auth-context"
-import { useCustomToast } from "@/hooks/use-custom-toast"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function RegisterForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const { register } = useAuth()
-  const toast = useCustomToast()
-  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const { register } = useAuth();
+  const router = useRouter();
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setIsLoading(true)
+    event.preventDefault();
+    setIsLoading(true);
 
     try {
-      await register({ name, email, password })
+      await register({ name, email, password });
 
-      // Mostrar animação de sucesso
-      setSuccess(true)
+      setSuccess(true);
 
-      toast.success("Usuário criado com sucesso", "O novo usuário foi registrado e pode fazer login no sistema.")
+      setName("");
+      setEmail("");
+      setPassword("");
 
-      // Limpar o formulário
-      setName("")
-      setEmail("")
-      setPassword("")
-
-      // Redirecionar para a lista de usuários após um breve delay
       setTimeout(() => {
-        router.push("/admin/users")
-      }, 2000)
+        router.push("/admin/users");
+      }, 2000);
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "Ocorreu um erro ao criar a conta."
-
-      toast.error("Erro ao registrar usuário", errorMessage)
-      setIsLoading(false)
-      setSuccess(false)
+      setIsLoading(false);
+      setSuccess(false);
     }
   }
 
   return (
     <Card
-      className={`border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-800 hover-lift ${success ? "success-animation" : ""}`}
+      className={`border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-800 hover-lift ${
+        success ? "success-animation" : ""
+      }`}
     >
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-gray-800 dark:text-white">Criar Usuário</CardTitle>
+        <CardTitle className="text-2xl text-gray-800 dark:text-white">
+          Criar Usuário
+        </CardTitle>
         <CardDescription className="text-gray-600 dark:text-gray-400">
           Preencha os dados abaixo para criar um novo usuário no sistema
         </CardDescription>
@@ -82,8 +82,12 @@ export default function RegisterForm() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="pl-10 border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500 transition-all"
-                onFocus={(e) => e.target.parentElement?.classList.add("animate-shimmer")}
-                onBlur={(e) => e.target.parentElement?.classList.remove("animate-shimmer")}
+                onFocus={(e) =>
+                  e.target.parentElement?.classList.add("animate-shimmer")
+                }
+                onBlur={(e) =>
+                  e.target.parentElement?.classList.remove("animate-shimmer")
+                }
               />
             </div>
           </div>
@@ -104,13 +108,20 @@ export default function RegisterForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10 border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500 transition-all"
-                onFocus={(e) => e.target.parentElement?.classList.add("animate-shimmer")}
-                onBlur={(e) => e.target.parentElement?.classList.remove("animate-shimmer")}
+                onFocus={(e) =>
+                  e.target.parentElement?.classList.add("animate-shimmer")
+                }
+                onBlur={(e) =>
+                  e.target.parentElement?.classList.remove("animate-shimmer")
+                }
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">
+            <Label
+              htmlFor="password"
+              className="text-gray-700 dark:text-gray-300"
+            >
               Senha
             </Label>
             <div className="relative">
@@ -126,8 +137,12 @@ export default function RegisterForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10 border-gray-300 focus:border-purple-500 dark:border-gray-700 dark:focus:border-purple-500 transition-all"
-                onFocus={(e) => e.target.parentElement?.classList.add("animate-shimmer")}
-                onBlur={(e) => e.target.parentElement?.classList.remove("animate-shimmer")}
+                onFocus={(e) =>
+                  e.target.parentElement?.classList.add("animate-shimmer")
+                }
+                onBlur={(e) =>
+                  e.target.parentElement?.classList.remove("animate-shimmer")
+                }
               />
               <button
                 type="button"
@@ -135,8 +150,14 @@ export default function RegisterForm() {
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex={-1}
               >
-                {showPassword ? <FaEyeSlash className="animate-bounce-in" /> : <FaEye />}
-                <span className="sr-only">{showPassword ? "Esconder senha" : "Mostrar senha"}</span>
+                {showPassword ? (
+                  <FaEyeSlash className="animate-bounce-in" />
+                ) : (
+                  <FaEye />
+                )}
+                <span className="sr-only">
+                  {showPassword ? "Esconder senha" : "Mostrar senha"}
+                </span>
               </button>
             </div>
           </div>
@@ -155,11 +176,14 @@ export default function RegisterForm() {
             className="bg-purple-700 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-700 transition-all hover-lift"
             disabled={isLoading || success}
           >
-            {isLoading ? "Registrando..." : success ? "Sucesso!" : "Criar Usuário"}
+            {isLoading
+              ? "Registrando..."
+              : success
+              ? "Sucesso!"
+              : "Criar Usuário"}
           </Button>
         </CardFooter>
       </form>
     </Card>
-  )
+  );
 }
-
